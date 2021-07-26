@@ -1,2 +1,2 @@
 # shifts
-Repository dedicated to solving the Shifts Challenge
+Secret PAL Project dedicated to solving the Shifts Challenge.
