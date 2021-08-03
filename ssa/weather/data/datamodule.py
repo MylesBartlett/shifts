@@ -69,7 +69,7 @@ class MinMaxNormalization(TabularTransform):
     def __init__(self, new_min: float = 0.0, new_max: float = 1.0, inplace: bool = False) -> None:
         super().__init__(inplace=inplace)
         if new_min > new_max:
-            raise ValueError("Argument 'new_min' must be less than argument 'new_max'.")
+            raise ValueError("'new_min' cannot be greater than 'new_max'.")
         self.new_min = new_min
         self.new_max = new_max
         self.new_range = self.new_max - self.new_min
