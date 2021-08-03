@@ -81,7 +81,7 @@ class WeatherDataset(PBDataset):
 
     @parsable
     def __init__(
-        self, root: Union[Path, str], split: Union[DataSplit, str], download: bool = True
+        self, root: Union[Path, str], split: Union[DataSplit, str], download: bool = False
     ) -> None:
         if isinstance(root, str):
             root = Path(root)
@@ -90,10 +90,15 @@ class WeatherDataset(PBDataset):
         self.download = download
 
         if self.download:
-            self._base_dir.mkdir(parents=True, exist_ok=True)
-            download_from_url(
-                url=self._URL, dst=self._base_dir / "canonical_trn_dev_data.tar", logger=self.logger
-            )
+            if self._data_dir.exists():
+                self.log("Files already downloaded and unzipped.")
+            else:
+                self._base_dir.mkdir(parents=True, exist_ok=True)
+                download_from_url(
+                    url=self._URL,
+                    dst=self._base_dir / "canonical_trn_dev_data.tar",
+                    logger=self.logger,
+                )
 
         elif not self._check_unzipped():
             raise RuntimeError(
@@ -102,11 +107,13 @@ class WeatherDataset(PBDataset):
 
         if isinstance(split, str):
             str_to_enum(str_=split, enum=DataSplit)
+        # usecols = list(range(6)) + ["fact_temperature"]
+        usecols = [3] + list(range(6, 128))
         if split is DataSplit.train:
-            df = pd.read_csv(self._data_dir / "train.csv")
+            df = pd.read_csv(self._data_dir / "train.csv", usecols=usecols)
         else:
-            df_dev_in = pd.read_csv(self._data_dir / "dev_in.csv")
-            df_dev_out = pd.read_csv(self._data_dir / "dev_out.csv")
+            df_dev_in = pd.read_csv(self._data_dir / "dev_in.csv", usecols=usecols)
+            df_dev_out = pd.read_csv(self._data_dir / "dev_out.csv", usecols=usecols)
             df = pd.concat([df_dev_in, df_dev_out])
 
         x = torch.as_tensor(df.iloc[:, 6:].to_numpy(), dtype=torch.float32)

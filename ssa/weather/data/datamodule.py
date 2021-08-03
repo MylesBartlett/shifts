@@ -5,10 +5,59 @@ from bolts.data import PBDataModule
 from bolts.data.structures import TrainValTestSplit
 from kit import implements, parsable
 from kit.torch import TrainingMode
+import torch
+from torch import Tensor
 
 from ssa.weather.data.dataset import DataSplit, WeatherDataset
 
 __all__ = ["WeatherDataModule"]
+
+
+class TabularTransform:
+    def __init__(self, inplace: bool = False) -> None:
+        self.inplace = inplace
+
+    def fit(self, input: Tensor) -> TabularTransform:
+        ...
+
+    def fit_transform(self, input: Tensor) -> Tensor:
+        self.fit(input)
+        return self.transform(input)
+
+    def inverse_transform(self, output: Tensor) -> Tensor:
+        ...
+
+    def transform(self, input: Tensor) -> Tensor:
+        ...
+
+    def __call__(self, input: Tensor) -> Tensor:
+        return self.transform(input)
+
+
+class ZScoreNormalization(TabularTransform):
+
+    mean: Tensor
+    std: Tensor
+
+    def fit(self, input: Tensor) -> ZScoreNormalization:
+        self.std, self.mean = torch.std_mean(input, dim=0, keepdim=True, unbiased=True)
+        return self
+
+    def inverse_transform(self, output: Tensor) -> Tensor:
+        if self.inplace:
+            output *= self.std
+            output += self.mean
+        else:
+            output = (output * self.std) + self.mean
+        return output
+
+    def transform(self, input: Tensor) -> Tensor:
+        if self.inplace:
+            input -= self.mean
+            input /= self.std
+        else:
+            input = (input - self.mean) / self.std
+        return input
 
 
 class WeatherDataModule(PBDataModule):
@@ -35,15 +84,28 @@ class WeatherDataModule(PBDataModule):
             training_mode=training_mode,
         )
         self.root = root
+        self.feature_transform = ZScoreNormalization(inplace=True)
+        self.target_transform = ZScoreNormalization(inplace=True)
 
     def prepare_data(self) -> None:
         WeatherDataset(root=self.root, split=DataSplit.train, download=True)
 
     @implements(PBDataModule)
     def _get_splits(self) -> TrainValTestSplit:
-        train_data = WeatherDataset(root=self.root, split=DataSplit.train)
+        # train_data = WeatherDataset(root=self.root, split=DataSplit.train)
         val_data = WeatherDataset(root=self.root, split=DataSplit.dev)
         # The (unlabeled) evaluation data is scheduled to be released in October
         # -- let's simply set the validation data as the test data for now
-        test_data = WeatherDataset(root=self.root, split=DataSplit.eval)
+        # test_data = WeatherDataset(root=self.root, split=DataSplit.eval)
+        train_data = val_data
+        test_data = val_data
+        # Feature normalization
+        self.feature_transform.fit_transform(train_data.x)
+        self.feature_transform.transform(val_data.x)
+        self.feature_transform.transform(test_data.x)
+        # Target normalization
+        self.feature_transform.fit_transform(train_data.y)
+        self.feature_transform.transform(val_data.y)
+        self.feature_transform.transform(test_data.y)
+
         return TrainValTestSplit(train=train_data, val=val_data, test=test_data)

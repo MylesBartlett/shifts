@@ -1,5 +1,5 @@
 defaults:
-  - /trainer_schema
+  - /schema/trainer: trainer
 
 deterministic: False
 gpus: 0

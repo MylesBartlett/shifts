@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 import os
-from pathlib import Path
 from typing import Any, Dict, Final, Optional
 
 import hydra
-from hydra.core.config_store import ConfigStore
-from hydra.utils import instantiate
+from hydra.utils import instantiate, to_absolute_path
+from kit.hydra import SchemaRegistration
 from omegaconf import DictConfig, MISSING, OmegaConf
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
@@ -37,23 +36,27 @@ class Config:
     trainer: Any = MISSING
 
 
-# ConfigStore enables type validation
-cs = ConfigStore.instance()
-cs.store(name="main_schema", node=Config)
-cs.store(name="trainer_schema", node=TrainerConf, package="trainer")
+sr = SchemaRegistration()
+sr.register(path="main_schema", config_class=Config)
 
-DATA: Final[str] = "data"
-cs.store(group=f"schema/{DATA}", name="weather", node=WeatherDataModuleConf, package=DATA)
+# 'datamodule' group
+with sr.new_group(group_name="schema/data", target_path="data") as group:
+    group.add_option(name="weather", config_class=WeatherDataModuleConf)
 
-MODEL: Final[str] = "model"
-cs.store(group=f"schema/{MODEL}", name="due", node=DUEConf, package=MODEL)
+# 'model' group
+with sr.new_group(group_name="schema/model", target_path="model") as group:
+    group.add_option(name="due", config_class=DUEConf)
+
+# 'trainer' group
+with sr.new_group(group_name="schema/trainer", target_path="trainer") as group:
+    group.add_option(name="trainer", config_class=TrainerConf)
 
 
 @hydra.main(config_path="configs", config_name="main")
 def launcher(hydra_config: DictConfig) -> None:
     """Instantiate with hydra and get the experiments running!"""
-    if hasattr(hydra_config.data, "data_dir"):
-        hydra_config.data.data_dir = Path(hydra_config.data.data_dir).expanduser()
+    if hasattr(hydra_config.data, "root"):
+        hydra_config.data.root = to_absolute_path(hydra_config.data.root)
     cfg: Config = instantiate(hydra_config, _recursive_=True, _convert_="partial")
     start(cfg, raw_config=OmegaConf.to_container(hydra_config, resolve=True, enum_to_str=True))
 
@@ -74,14 +77,16 @@ def start(cfg: Config, raw_config: Optional[Dict[str, Any]]) -> None:
     if raw_config is not None:
         exp_logger.log_hyperparams(raw_config)
     cfg.trainer.logger = exp_logger
-
     pl.seed_everything(cfg.exp.seed)
+
+    print("Preparing the data.")
     cfg.data.prepare_data()
     cfg.data.setup()
-
     # Build the model
+    print("Building model.")
     cfg.model.build(datamodule=cfg.data, trainer=cfg.trainer)
     # Fit the model
+    print("Fitting model.")
     cfg.trainer.fit(model=cfg.model, datamodule=cfg.data)
     exp_logger.experiment.finish()
 

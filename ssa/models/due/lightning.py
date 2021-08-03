@@ -1,6 +1,5 @@
 """PyTorch-Lightning wrapper for DUE."""
 from __future__ import annotations
-from typing import Union
 
 from bolts.common import MetricDict, Stage
 from bolts.data.datamodules.base import PBDataModule
@@ -74,7 +73,7 @@ class DUE(ModelBase):
 
         self.num_features = num_features
         self.depth = depth
-        self.coeff = snorm_coeff
+        self.snorm_coeff = snorm_coeff
         self.n_power_iterations = n_power_iterations
         self.dropout_rate = dropout_rate
         self.activation_fn = activation_fn
@@ -91,7 +90,7 @@ class DUE(ModelBase):
 
     def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
         self.feature_extractor = FCResNet(
-            in_channels=datamodule.dim_x,
+            in_channels=datamodule.dim_x[0],
             num_features=self.num_features,
             depth=self.depth,
             snorm_coeff=self.snorm_coeff,
@@ -112,6 +111,7 @@ class DUE(ModelBase):
 
         train_dl = datamodule.train_dataloader(batch_size=datamodule.eval_batch_size)
         fe_runner = gcopy(trainer, limit_test_batches=self.num_inducing_point_refs)
+        print(f"Extracting features from a subset of {self.num_inducing_point_refs} data-points.")
         fe_lm = FeatureExtractorLM(self.feature_extractor)
         fe_runner.test(
             fe_lm,
@@ -121,9 +121,11 @@ class DUE(ModelBase):
         datamodule._train_data = train_data_full
 
         features = fe_lm.features.cpu()
+        print(f"Computing initial inducing points for GP.")
         initial_inducing_points = get_initial_inducing_points(
             f_X_sample=features.numpy(), num_inducing_points=self.num_inducing_points
         )
+        print(f"Computing initial lengthscale for GP.")
         initial_lengthscale = get_initial_lengthscale(f_X_samples=features)
 
         self.dklgp = DKLGP(
