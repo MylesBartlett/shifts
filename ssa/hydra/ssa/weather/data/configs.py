@@ -7,6 +7,7 @@
 from dataclasses import dataclass, field
 from kit.torch.data import TrainingMode
 from omegaconf import MISSING
+from ssa.weather.data.dataset import ImputationMethod
 from typing import Optional
 
 
@@ -21,3 +22,4 @@ class WeatherDataModuleConf:
     persist_workers: bool = False
     pin_memory: bool = True
     training_mode: TrainingMode = TrainingMode.epoch
+    imputation_method: ImputationMethod = ImputationMethod.mean
