@@ -1,0 +1,6 @@
+defaults:
+  - main_schema
+  - data: weather
+  - exp: srv
+  - model: due
+  - trainer: srv

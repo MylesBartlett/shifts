@@ -1,0 +1,6 @@
+weight_decay: 0.0
+lr: 3.0e-4
+lr_initial_restart: 10
+lr_restart_mult: 2
+lr_sched_interval: "epoch"
+lr_sched_freq: 1

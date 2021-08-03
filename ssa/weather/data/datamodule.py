@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pathlib import Path
+from typing import Optional
 
 from bolts.data import PBDataModule
 from bolts.data.structures import TrainValTestSplit
@@ -16,8 +16,9 @@ class WeatherDataModule(PBDataModule):
     def __init__(
         self,
         *,
-        root: Path,
-        batch_size: int = 64,
+        root: str,
+        train_batch_size: int = 100,
+        eval_batch_size: Optional[int] = 256,
         num_workers: int = 0,
         seed: int = 47,
         persist_workers: bool = False,
@@ -25,7 +26,8 @@ class WeatherDataModule(PBDataModule):
         training_mode: TrainingMode = TrainingMode.epoch,
     ) -> None:
         super().__init__(
-            batch_size=batch_size,
+            train_batch_size=train_batch_size,
+            eval_batch_size=eval_batch_size,
             num_workers=num_workers,
             seed=seed,
             persist_workers=persist_workers,
@@ -33,12 +35,6 @@ class WeatherDataModule(PBDataModule):
             training_mode=training_mode,
         )
         self.root = root
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.seed = seed
-        self.persist_workers = persist_workers
-        self.pin_memory = pin_memory
-        self.training_mode = training_mode
 
     def prepare_data(self) -> None:
         WeatherDataset(root=self.root, split=DataSplit.train, download=True)
