@@ -62,6 +62,12 @@ class DUE(ModelBase):
         lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
     ) -> None:
+        if num_inducing_points >= num_inducing_point_refs:
+            raise ValueError(
+                f"NUmber of reference points used to compute the initial inducing points must "
+                f"exceed the number of inducing points. Received 'num_inducing_points={num_inducing_points}' "
+                f"and `num_inducing_point_refs={num_inducing_point_refs}.`"
+            )
         super().__init__(
             lr=lr,
             weight_decay=weight_decay,
@@ -130,14 +136,14 @@ class DUE(ModelBase):
 
         self.dklgp = DKLGP(
             feature_extractor=self.feature_extractor,
-            num_outputs=datamodule.dim_y,
+            num_outputs=datamodule.dim_y[0],
             initial_inducing_points=initial_inducing_points,
             initial_lengthscale=initial_lengthscale,
             kernel=self.kernel,
         )
         self.loss_fn = VariationalELBO(
             likelihood=self.likelihood,
-            model=self.dklgp,
+            model=self.dklgp.gp,
             num_data=datamodule.num_train_samples,
             beta=self.beta,
         )
@@ -152,37 +158,34 @@ class DUE(ModelBase):
     @implements(ModelBase)
     def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         variational_dist = self.dklgp(batch.x)
-        ol = self.likelihood(variational_dist)
-        loss = self.likelihood.expected_log_prob(variational_dist, batch.y)
+        loss = self.likelihood.expected_log_prob(input=variational_dist, target=batch.y).mean()
         self.log_dict({f"{stage}/expected_log_prob": loss.item()})  # type: ignore
         return {
             "y": batch.y.view(-1),
-            "predicted_means": ol.mean,
-            "uncertainties": ol.std,
+            "predicted_means": variational_dist.mean,
+            "predicted_stddevs": variational_dist.stddev,
         }
 
     @implements(ModelBase)
     def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
         targets = torch.cat([step_output["y"] for step_output in outputs], 0)
         predicted_means = torch.cat([step_output["predicted_means"] for step_output in outputs], 0)
-        uncertainties = torch.cat([step_output["pred_stds"] for step_output in outputs], 0)
+        predicted_stddevs = torch.cat(
+            [step_output["predicted_stddevs"] for step_output in outputs], 0
+        )
         # squared error
         errors = (predicted_means - targets) ** 2
         # MSE retention values
-        rejection_mse = calc_uncertainty_regection_curve(errors, uncertainties)
-        retention_mse = rejection_mse[::-1]
+        # rejection_mse = calc_uncertainty_regection_curve(errors, predicted_stddevs)
+        # retention_mse = rejection_mse[::-1]
         # Use an acceptable error threshold of 1 degree
         thresh = 1.0
         # Get all metrics
-        f_auc, f95, retention_f1 = f_beta_metrics(
-            errors=errors, uncertainty=uncertainties, threshold=thresh, beta=1.0
+        f_auc, f95, _ = f_beta_metrics(
+            errors=errors, uncertainty=predicted_stddevs, threshold=thresh, beta=1.0
         )
-        results_dict = dict(
-            retention_mse=retention_mse, f_auc=f_auc, f95=f95, retention_f1=retention_f1
-        )
-        results_dict = {
-            f"{stage}/{self.target_name}_{key}": value for key, value in results_dict.items()
-        }
+        results_dict = dict(f_auc=f_auc, f95=f95)
+        results_dict = {f"{stage}/{key}": value for key, value in results_dict.items()}
         return results_dict
 
     @implements(nn.Module)

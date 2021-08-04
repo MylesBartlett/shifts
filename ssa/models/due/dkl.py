@@ -92,12 +92,12 @@ class GP(ApproximateGP):
             "batch_shape": batch_shape,
         }
 
-        kernel_fn = GPKernel.value(**kwargs)
+        kernel_fn = kernel.value(**kwargs)
 
         kernel_fn.lengthscale = initial_lengthscale * torch.ones_like(kernel_fn.lengthscale)
 
         self.mean_module = ConstantMean(batch_shape=batch_shape)
-        self.covar_module = ScaleKernel(kernel, batch_shape=batch_shape)
+        self.covar_module = ScaleKernel(kernel_fn, batch_shape=batch_shape)
 
     def forward(self, x) -> MultivariateNormal:
         mean = self.mean_module(x)

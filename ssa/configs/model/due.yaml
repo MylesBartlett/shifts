@@ -10,6 +10,6 @@ n_power_iterations: 1
 dropout_rate: 0.01
 activation_fn: relu
 kernel: matern12
-num_inducing_points: 1000
-num_inducing_point_refs: 20
+num_inducing_points: 20
+num_inducing_point_refs: 1000
 beta: 1.0
