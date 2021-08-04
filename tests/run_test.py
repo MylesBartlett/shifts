@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 from typing import Final
 
 from configen.config import Config
@@ -24,7 +25,7 @@ def test_with_initialize(dm: str) -> None:
         # config is relative to a module
         hydra_cfg = compose(
             config_name="main",
-            overrides=[f"data={dm}"] + SCHEMAS,
+            overrides=[f"data={dm}", f"data.root={Path('~/Data').expanduser()}"] + SCHEMAS,
         )
         cfg: Config = instantiate(hydra_cfg, _recursive_=True, _convert_="partial")
 
