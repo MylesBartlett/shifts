@@ -10,7 +10,6 @@ from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import VariationalELBO
 from kit import implements
 from kit.decorators import implements, parsable
-from kit.misc import gcopy
 from kit.torch import TrainingMode
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -18,7 +17,6 @@ import torch
 from torch import Tensor, nn
 from torch.utils.data.dataset import Subset
 
-from ssa.motion.sdc.assessment import calc_uncertainty_regection_curve
 from ssa.weather.assessment import f_beta_metrics
 
 from .dkl import DKLGP, GPKernel, get_initial_inducing_points, get_initial_lengthscale
@@ -116,10 +114,9 @@ class DUE(ModelBase):
         datamodule._train_data = train_data_subset
 
         train_dl = datamodule.train_dataloader(batch_size=datamodule.eval_batch_size)
-        fe_runner = gcopy(trainer, limit_test_batches=self.num_inducing_point_refs)
         print(f"Extracting features from a subset of {self.num_inducing_point_refs} data-points.")
         fe_lm = FeatureExtractorLM(self.feature_extractor)
-        fe_runner.test(
+        trainer.test(
             fe_lm,
             test_dataloaders=train_dl,
             verbose=False,
@@ -175,9 +172,6 @@ class DUE(ModelBase):
         )
         # squared error
         errors = (predicted_means - targets) ** 2
-        # MSE retention values
-        # rejection_mse = calc_uncertainty_regection_curve(errors, predicted_stddevs)
-        # retention_mse = rejection_mse[::-1]
         # Use an acceptable error threshold of 1 degree
         thresh = 1.0
         # Get all metrics
