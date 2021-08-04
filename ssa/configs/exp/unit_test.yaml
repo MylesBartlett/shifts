@@ -1,0 +1,5 @@
+defaults:
+  - base
+
+seed: 0
+log_offline: True

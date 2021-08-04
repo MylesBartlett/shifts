@@ -1,0 +1,8 @@
+root: "data"
+train_batch_size: 100
+eval_batch_size: 256
+num_workers: 8
+seed: 47
+persist_workers: False
+pin_memory: True
+training_mode: epoch
