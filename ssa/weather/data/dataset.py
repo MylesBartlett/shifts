@@ -133,7 +133,7 @@ class WeatherDataset(PBDataset):
                         target = df.pop(self._TARGET)  # type: ignore
                         # Move the target to the end of the dataframe
                         df = pd.concat([df, target], axis=1)
-                    data = torch.as_tensor(df.to_numpy(), dtype=torch.float64)
+                    data = torch.as_tensor(df.to_numpy(), dtype=torch.float32)
                     torch.save(obj=data, f=save_path)
 
         elif not self._check_unzipped():

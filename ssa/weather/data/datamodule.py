@@ -1,4 +1,5 @@
 from __future__ import annotations
+from abc import abstractmethod
 from typing import Optional
 
 from bolts.data import PBDataModule
@@ -17,6 +18,7 @@ class TabularTransform:
     def __init__(self, inplace: bool = False) -> None:
         self.inplace = inplace
 
+    @abstractmethod
     def fit(self, input: Tensor) -> TabularTransform:
         ...
 
@@ -24,9 +26,11 @@ class TabularTransform:
         self.fit(input)
         return self.transform(input)
 
+    @abstractmethod
     def inverse_transform(self, output: Tensor) -> Tensor:
         ...
 
+    @abstractmethod
     def transform(self, input: Tensor) -> Tensor:
         ...
 
@@ -39,10 +43,12 @@ class ZScoreNormalization(TabularTransform):
     mean: Tensor
     std: Tensor
 
+    @implements(TabularTransform)
     def fit(self, input: Tensor) -> ZScoreNormalization:
         self.std, self.mean = torch.std_mean(input, dim=0, keepdim=True, unbiased=True)
         return self
 
+    @implements(TabularTransform)
     def inverse_transform(self, output: Tensor) -> Tensor:
         if self.inplace:
             output *= self.std
@@ -51,6 +57,7 @@ class ZScoreNormalization(TabularTransform):
             output = (output * self.std) + self.mean
         return output
 
+    @implements(TabularTransform)
     def transform(self, input: Tensor) -> Tensor:
         if self.inplace:
             input -= self.mean
@@ -74,12 +81,14 @@ class MinMaxNormalization(TabularTransform):
         self.new_max = new_max
         self.new_range = self.new_max - self.new_min
 
+    @implements(TabularTransform)
     def fit(self, input: Tensor) -> MinMaxNormalization:
         self.orig_min = torch.min(input, dim=0, keepdim=True).values
         self.orig_max = torch.max(input, dim=0, keepdim=True).values
         self.orig_range = self.orig_max - self.orig_min
         return self
 
+    @implements(TabularTransform)
     def inverse_transform(self, output: Tensor) -> Tensor:
         output_std = (output - self.new_min) / (self.new_range)
         if self.inplace:
@@ -89,6 +98,7 @@ class MinMaxNormalization(TabularTransform):
             output = output_std * self.orig_range + self.orig_min
         return output
 
+    @implements(TabularTransform)
     def transform(self, input: Tensor) -> Tensor:
         input_std = (input - self.orig_min) / (self.orig_range)
         if self.inplace:
