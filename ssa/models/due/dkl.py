@@ -64,7 +64,7 @@ class GP(ApproximateGP):
 
         num_inducing_points = initial_inducing_points.shape[0]
 
-        batch_shape = torch.Size([num_outputs]) if num_outputs[0] > 1 else torch.Size([])
+        batch_shape = torch.Size([num_outputs]) if num_outputs > 1 else torch.Size([])
         variational_distribution = CholeskyVariationalDistribution(
             num_inducing_points=num_inducing_points, batch_shape=batch_shape
         )
@@ -75,7 +75,7 @@ class GP(ApproximateGP):
             variational_distribution=variational_distribution,
         )
 
-        if num_outputs[0] > 1:
+        if num_outputs > 1:
             variational_strategy = IndependentMultitaskVariationalStrategy(
                 base_variational_strategy=variational_strategy, num_tasks=num_outputs
             )
