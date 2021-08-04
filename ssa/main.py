@@ -1,11 +1,15 @@
 from dataclasses import dataclass
 import os
-from typing import Any, Dict, Final, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional
 
 import hydra
 from hydra.utils import instantiate, to_absolute_path
 from kit.hydra import SchemaRegistration
+import numpy as np
+import numpy.typing as npt
 from omegaconf import DictConfig, MISSING, OmegaConf
+import pandas as pd
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
@@ -88,7 +92,23 @@ def start(cfg: Config, raw_config: Optional[Dict[str, Any]]) -> None:
     # Fit the model
     print("Fitting model.")
     cfg.trainer.fit(model=cfg.model, datamodule=cfg.data)
+    results_dict = cfg.trainer.test(model=cfg.model, datamodule=cfg.data)
+    produce_submission(
+        cfg.model.results_dict["preds_mean"],
+        cfg.model.results_dict["preds_std"],
+        Path("./submission"),
+    )
     exp_logger.experiment.finish()
+
+
+def produce_submission(
+    pred_mean: npt.NDArray[np.float32], pred_std: npt.NDArray[np.float32], results_dir: Path
+) -> None:
+    if not results_dir.exists():
+        results_dir.mkdir()
+    ids = np.arange(1, len(pred_mean) + 1)
+    df = pd.DataFrame({"ID": ids, "PRED": pred_mean, "UNCERTAINTY": pred_std})
+    df.to_csv(f"./{results_dir}/out.csv", index=False)
 
 
 if __name__ == "__main__":
