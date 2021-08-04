@@ -31,9 +31,7 @@ def get_initial_inducing_points(
         n_clusters=num_inducing_points, batch_size=num_inducing_points * 10
     )
     kmeans.fit(f_X_sample)
-    initial_inducing_points = torch.from_numpy(kmeans.cluster_centers_)
-
-    return initial_inducing_points
+    return torch.from_numpy(kmeans.cluster_centers_)
 
 
 def get_initial_lengthscale(f_X_samples: Tensor) -> Tensor:
@@ -66,11 +64,7 @@ class GP(ApproximateGP):
 
         num_inducing_points = initial_inducing_points.shape[0]
 
-        if num_outputs > 1:
-            batch_shape = torch.Size([num_outputs])
-        else:
-            batch_shape = torch.Size([])
-
+        batch_shape = torch.Size([num_outputs]) if num_outputs[0] > 1 else torch.Size([])
         variational_distribution = CholeskyVariationalDistribution(
             num_inducing_points=num_inducing_points, batch_shape=batch_shape
         )
@@ -81,7 +75,7 @@ class GP(ApproximateGP):
             variational_distribution=variational_distribution,
         )
 
-        if num_outputs > 1:
+        if num_outputs[0] > 1:
             variational_strategy = IndependentMultitaskVariationalStrategy(
                 base_variational_strategy=variational_strategy, num_tasks=num_outputs
             )
@@ -92,7 +86,7 @@ class GP(ApproximateGP):
             "batch_shape": batch_shape,
         }
 
-        kernel_fn = GPKernel.value(**kwargs)
+        kernel_fn = kernel.value(**kwargs)
 
         kernel_fn.lengthscale = initial_lengthscale * torch.ones_like(kernel_fn.lengthscale)
 

@@ -113,14 +113,16 @@ class DUE(ModelBase):
         fe_runner = gcopy(trainer, limit_test_batches=self.num_inducing_point_refs)
         print(f"Extracting features from a subset of {self.num_inducing_point_refs} data-points.")
         fe_lm = FeatureExtractorLM(self.feature_extractor)
-        fe_runner.test(
-            fe_lm,
-            test_dataloaders=train_dl,
-            verbose=False,
-        )
+        features = torch.cat([fe_lm(batch.x.float()) for batch in train_dl], dim=0).cpu().detach()
+
+        # fe_runner.test(
+        #     fe_lm,
+        #     test_dataloaders=train_dl,
+        #     verbose=False,
+        # )
         datamodule._train_data = train_data_full
 
-        features = fe_lm.features.cpu()
+        # features = fe_lm.features.cpu()
         print(f"Computing initial inducing points for GP.")
         initial_inducing_points = get_initial_inducing_points(
             f_X_sample=features.numpy(), num_inducing_points=self.num_inducing_points

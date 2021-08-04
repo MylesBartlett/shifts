@@ -1,0 +1,10 @@
+defaults:
+  - base
+
+
+deterministic: True
+gpus: 0
+auto_select_gpus: False
+auto_scale_batch_size: False
+terminate_on_nan: True
+fast_dev_run: True
