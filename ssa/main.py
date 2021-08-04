@@ -103,7 +103,7 @@ def start(cfg: Config, raw_config: Optional[Dict[str, Any]]) -> None:
 
 def produce_submission(
     pred_mean: npt.NDArray[np.float32], pred_std: npt.NDArray[np.float32], results_dir: Path
-):
+) -> None:
     if not results_dir.exists():
         results_dir.mkdir()
     ids = np.arange(1, len(pred_mean) + 1)
