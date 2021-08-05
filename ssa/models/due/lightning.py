@@ -176,7 +176,7 @@ class DUE(ModelBase):
         thresh = 1.0
         # Get all metrics
         f_auc, f95, _ = f_beta_metrics(
-            errors=errors, uncertainty=predicted_stddevs, threshold=thresh, beta=1.0
+            errors=errors, uncertainty=predicted_stddevs.detach().cpu(), threshold=thresh, beta=1.0
         )
         results_dict = dict(f_auc=f_auc, f95=f95)
         results_dict = {f"{stage}/{key}": value for key, value in results_dict.items()}
