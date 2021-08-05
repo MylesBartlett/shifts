@@ -171,7 +171,7 @@ class DUE(ModelBase):
             [step_output["predicted_stddevs"] for step_output in outputs], 0
         )
         # squared error
-        errors = (predicted_means - targets) ** 2
+        errors = ((predicted_means - targets) ** 2).detach().cpu()
         # Use an acceptable error threshold of 1 degree
         thresh = 1.0
         # Get all metrics
