@@ -107,7 +107,7 @@ def produce_submission(
     if not results_dir.exists():
         results_dir.mkdir()
     ids = np.arange(1, len(pred_mean) + 1)
-    df = pd.DataFrame({"ID": ids, "Prediction": pred_mean, "Uncertainty": pred_std})
+    df = pd.DataFrame({"ID": ids, "PRED": pred_mean, "UNCERTAINTY": pred_std})
     df.to_csv(f"./{results_dir}/out.csv", index=False)
 
 
