@@ -180,8 +180,8 @@ class DUE(ModelBase):
         )
         results_dict = dict(f_auc=f_auc, f95=f95)
         results_dict = {f"{stage}/{key}": value for key, value in results_dict.items()}
-        results_dict["preds_mean"] = predicted_means
-        results_dict["preds_std"] = predicted_stddevs
+        results_dict["preds_mean"] = predicted_means.detach().cpu()
+        results_dict["preds_std"] = predicted_stddevs.detach().cpu()
         if stage == "test":
             self.results_dict = results_dict
         return results_dict
