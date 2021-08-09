@@ -46,7 +46,6 @@ class ZScoreNormalization(TabularTransform):
     @implements(TabularTransform)
     def fit(self, input: Tensor) -> ZScoreNormalization:
         self.std, self.mean = torch.std_mean(input, dim=0, keepdim=True, unbiased=True)
-        return self
 
     @implements(TabularTransform)
     def inverse_transform(self, output: Tensor) -> Tensor:
@@ -86,25 +85,28 @@ class MinMaxNormalization(TabularTransform):
         self.orig_min = torch.min(input, dim=0, keepdim=True).values
         self.orig_max = torch.max(input, dim=0, keepdim=True).values
         self.orig_range = self.orig_max - self.orig_min
-        return self
 
     @implements(TabularTransform)
     def inverse_transform(self, output: Tensor) -> Tensor:
-        output_std = (output - self.new_min) / (self.new_range)
         if self.inplace:
+            output -= self.new_min
+            output /= self.new_range
             output *= self.orig_range
             output += self.orig_min
         else:
+            output_std = (output - self.new_min) / (self.new_range)
             output = output_std * self.orig_range + self.orig_min
         return output
 
     @implements(TabularTransform)
     def transform(self, input: Tensor) -> Tensor:
-        input_std = (input - self.orig_min) / (self.orig_range)
         if self.inplace:
+            input -= self.orig_min
+            input /= self.orig_range + torch.finfo(torch.float32).eps
             input *= self.new_range
             input += self.new_min
         else:
+            input_std = (input - self.orig_min) / (self.orig_range + torch.finfo(torch.float32).eps)
             input = input_std * self.new_range + self.new_min
         return input
 
@@ -157,8 +159,8 @@ class WeatherDataModule(PBDataModule):
         self.feature_transform.transform(val_data.x)
         # self.feature_transform.transform(test_data.x)
         # Target normalization
-        self.feature_transform.fit_transform(train_data.y)
-        self.feature_transform.transform(val_data.y)
+        self.target_transform.fit_transform(train_data.y)
+        self.target_transform.transform(val_data.y)
         # self.feature_transform.transform(test_data.y)
         test_data = val_data
 

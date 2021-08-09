@@ -145,6 +145,9 @@ class DUE(ModelBase):
             beta=self.beta,
         )
 
+        self.feature_scaler = datamodule.feature_transform
+        self.target_scaler = datamodule.target_transform
+
     @implements(pl.LightningModule)
     def training_step(self, batch: TernarySample, batch_idx: int) -> Tensor:
         logits = self.forward(batch.x)
@@ -180,7 +183,9 @@ class DUE(ModelBase):
         )
         results_dict = dict(f_auc=f_auc, f95=f95)
         results_dict = {f"{stage}/{key}": value for key, value in results_dict.items()}
-        results_dict["preds_mean"] = predicted_means.detach().cpu()
+        results_dict["preds_mean"] = self.target_scaler.inverse_transform(
+            predicted_means.detach().cpu()
+        )
         results_dict["preds_std"] = predicted_stddevs.detach().cpu()
         if stage == "test":
             self.results_dict = results_dict

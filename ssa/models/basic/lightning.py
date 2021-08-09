@@ -39,7 +39,16 @@ class SimpleRegression(ModelBase):
         self.relu = nn.ReLU()
 
     def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
-        self.net = nn.Linear(datamodule.dim_x[0], 2)
+        self.net = nn.Sequential(
+            nn.Linear(datamodule.dim_x[0], 100),
+            nn.ReLU(),
+            nn.Linear(100, 100),
+            nn.ReLU(),
+            nn.Linear(100, 2),
+        )
+
+        self.feature_scaler = datamodule.feature_transform
+        self.target_scaler = datamodule.target_transform
 
     def training_step(self, batch, batch_idx) -> Tensor:
         mean, std = self(batch.x)
@@ -73,7 +82,9 @@ class SimpleRegression(ModelBase):
         )
         results_dict = dict(f_auc=f_auc, f95=f95)
         results_dict = {f"{stage}/{key}": value for key, value in results_dict.items()}
-        results_dict["preds_mean"] = predicted_means.detach().cpu()
+        results_dict["preds_mean"] = self.target_scaler.inverse_transform(
+            predicted_means.detach().cpu()
+        )
         results_dict["preds_std"] = predicted_stddevs.detach().cpu()
         if stage == "test":
             self.results_dict = results_dict
