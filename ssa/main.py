@@ -14,7 +14,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
 from ssa.hydra.pytorch_lightning.trainer.configs import TrainerConf
-from ssa.hydra.ssa.models.configs import DUEConf
+from ssa.hydra.ssa.models.configs import DUEConf, SimpleRegressionConf
 from ssa.hydra.ssa.weather.data.configs import WeatherDataModuleConf
 
 
@@ -50,6 +50,7 @@ with sr.new_group(group_name="schema/data", target_path="data") as group:
 # 'model' group
 with sr.new_group(group_name="schema/model", target_path="model") as group:
     group.add_option(name="due", config_class=DUEConf)
+    group.add_option(name="simple", config_class=SimpleRegressionConf)
 
 # 'trainer' group
 with sr.new_group(group_name="schema/trainer", target_path="trainer") as group:
@@ -92,7 +93,7 @@ def start(cfg: Config, raw_config: Optional[Dict[str, Any]]) -> None:
     # Fit the model
     print("Fitting model.")
     cfg.trainer.fit(model=cfg.model, datamodule=cfg.data)
-    results_dict = cfg.trainer.test(model=cfg.model, datamodule=cfg.data)
+    cfg.trainer.test(model=cfg.model, datamodule=cfg.data)
     produce_submission(
         cfg.model.results_dict["preds_mean"],
         cfg.model.results_dict["preds_std"],

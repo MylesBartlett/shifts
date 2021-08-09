@@ -87,6 +87,7 @@ reportMissingTypeStubs = "warning"
 strictListInference = true
 strictSetInference = true
 strictParameterNoneValue = true
+venv = "shifts"
 
 [tool.mypy]
 python_version = "3.8"

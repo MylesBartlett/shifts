@@ -22,6 +22,7 @@ configen:
     - name: ssa.models
       classes:
         - DUE
+        - SimpleRegression
     - name: pytorch_lightning.trainer
       classes:
         - Trainer

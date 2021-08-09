@@ -4,7 +4,7 @@
 # isort:skip_file
 # flake8: noqa
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from kit.torch.data import TrainingMode
 from ssa.models.due.dkl import GPKernel
 from ssa.models.due.fc_resnet import ActivationFn
@@ -23,6 +23,17 @@ class DUEConf:
     num_inducing_point_refs: int = 1000
     kernel: GPKernel = GPKernel.matern12
     beta: float = 1.0
+    weight_decay: float = 0.0
+    lr: float = 0.0003
+    lr_initial_restart: int = 10
+    lr_restart_mult: int = 2
+    lr_sched_interval: TrainingMode = TrainingMode.epoch
+    lr_sched_freq: int = 1
+
+
+@dataclass
+class SimpleRegressionConf:
+    _target_: str = "ssa.models.SimpleRegression"
     weight_decay: float = 0.0
     lr: float = 0.0003
     lr_initial_restart: int = 10
