@@ -13,22 +13,29 @@ import torch.distributions as td
 
 from ssa.weather.assessment import f_beta_metrics
 
+from ..due import ActivationFn, FCResNet
+
 __all__ = ["SimpleRegression"]
 
 
 class SimpleRegression(ModelBase):
-    net: nn.Module
-    mean_net: nn.Module
-    std_net: nn.Module
+    feature_extractor: nn.Module
+    mean_std_net: nn.Module
 
     def __init__(
         self,
-        weight_decay: float = 0.0,
+        activation_fn: ActivationFn = ActivationFn.relu,
+        depth: int = 8,
+        dropout_rate: float = 0.95,
         lr: float = 3.0e-4,
         lr_initial_restart: int = 10,
         lr_restart_mult: int = 2,
         lr_sched_interval: TrainingMode = TrainingMode.epoch,
         lr_sched_freq: int = 1,
+        n_power_iterations: int = 1,
+        num_features: int = 128,
+        snorm_coeff: float = 0.95,
+        weight_decay: float = 0.0,
     ):
         super().__init__(
             lr=lr,
@@ -38,17 +45,24 @@ class SimpleRegression(ModelBase):
             lr_sched_interval=lr_sched_interval,
             lr_sched_freq=lr_sched_freq,
         )
-        self.relu = nn.ReLU()
+        self.activation_fn = activation_fn
+        self.depth = depth
+        self.dropout_rate = dropout_rate
+        self.n_power_iterations = n_power_iterations
+        self.num_features = num_features
+        self.snorm_coeff = snorm_coeff
 
     def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
-        self.net = nn.Sequential(
-            nn.Linear(datamodule.dim_x[0], 1_000),
-            nn.SiLU(),
-            nn.Linear(1_000, 1_000),
-            nn.SiLU(),
+        self.feature_extractor = FCResNet(
+            in_channels=datamodule.dim_x[0],
+            num_features=self.num_features,
+            depth=self.depth,
+            snorm_coeff=self.snorm_coeff,
+            n_power_iterations=self.n_power_iterations,
+            dropout_rate=self.dropout_rate,
+            activation_fn=self.activation_fn,
         )
-        self.mean_net = nn.Sequential(nn.Linear(1_000, 1), nn.Sigmoid())
-        self.std_net = nn.Sequential(nn.Linear(1_000, 1), nn.Sigmoid())
+        self.mean_std_net = nn.Linear(self.num_features, 2)
 
         self.feature_scaler = datamodule.feature_transform
         self.target_scaler = datamodule.target_transform
@@ -94,7 +108,6 @@ class SimpleRegression(ModelBase):
         return results_dict
 
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor]:
-        z = self.net(x)
-        mean: Tensor = self.mean_net(z)
-        std: Tensor = self.std_net(z) + torch.finfo(torch.float32).eps
-        return mean.squeeze(), std.squeeze()
+        z = self.feature_extractor(x)
+        mean_std: Tensor = self.mean_std_net(z)
+        return mean_std[:, 0].sigmoid(), mean_std[:, 1].sigmoid() + torch.finfo(torch.float32).eps
