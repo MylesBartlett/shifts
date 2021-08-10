@@ -804,7 +804,7 @@ torchvision = "*"
 type = "git"
 url = "https://github.com/predictive-analytics-lab/palbolts.git"
 reference = "main"
-resolved_reference = "5b1650f078d70dda6a5809693c68c3e8a837eb00"
+resolved_reference = "d6deecfe00202f4fa426523fbb3372086df2fe44"
 
 [[package]]
 name = "palkit"
@@ -1583,7 +1583,7 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
 name = "virtualenv"
-version = "20.7.0"
+version = "20.7.1"
 description = "Virtual Python Environment builder"
 category = "main"
 optional = false
@@ -1676,7 +1676,7 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "0c9fc3cb52b204076ffab504a76b94cb8d6762ec95df143ed5ff80885d35e232"
+content-hash = "3dbb567f8b8e7327b146cc18d035b616577e2d3767b55c5979f711937448751d"
 
 [metadata.files]
 absl-py = [
@@ -2851,8 +2851,8 @@ urllib3 = [
     {file = "urllib3-1.26.6.tar.gz", hash = "sha256:f57b4c16c62fa2760b7e3d97c35b255512fb6b59a259730f36ba32ce9f8e342f"},
 ]
 virtualenv = [
-    {file = "virtualenv-20.7.0-py2.py3-none-any.whl", hash = "sha256:fdfdaaf0979ac03ae7f76d5224a05b58165f3c804f8aa633f3dd6f22fbd435d5"},
-    {file = "virtualenv-20.7.0.tar.gz", hash = "sha256:97066a978431ec096d163e72771df5357c5c898ffdd587048f45e0aecc228094"},
+    {file = "virtualenv-20.7.1-py2.py3-none-any.whl", hash = "sha256:73863dc3be1efe6ee638e77495c0c195a6384ae7b15c561f3ceb2698ae7267c1"},
+    {file = "virtualenv-20.7.1.tar.gz", hash = "sha256:57bcb59c5898818bd555b1e0cfcf668bd6204bc2b53ad0e70a52413bd790f9e4"},
 ]
 virtualenv-clone = [
     {file = "virtualenv-clone-0.5.6.tar.gz", hash = "sha256:997c7d225eabc4d09e77672461f4bdf9f3a8ea9dc9e4a847b0e83dc8bad9573a"},
