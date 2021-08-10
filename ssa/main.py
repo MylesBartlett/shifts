@@ -11,6 +11,7 @@ import numpy.typing as npt
 from omegaconf import DictConfig, MISSING, OmegaConf
 import pandas as pd
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 from ssa.hydra.pytorch_lightning.trainer.configs import TrainerConf
@@ -91,6 +92,11 @@ def start(cfg: Config, raw_config: Optional[Dict[str, Any]]) -> None:
     print("Building model.")
     cfg.model.build(datamodule=cfg.data, trainer=cfg.trainer)
     # Fit the model
+    es_callback = EarlyStopping(
+        monitor="val_loss", min_delta=0.00, patience=10, verbose=True, mode="min"
+    )
+    ckpt_callback = ModelCheckpoint(monitor="val_loss", mode="min")
+    cfg.trainer.callbacks = [ckpt_callback, es_callback]
     print("Fitting model.")
     cfg.trainer.fit(model=cfg.model, datamodule=cfg.data)
     cfg.trainer.test(model=cfg.model, datamodule=cfg.data)

@@ -78,8 +78,9 @@ class SimpleRegression(ModelBase):
         loss = -variational_dist.log_prob(batch.y).mean()
         self.log_dict({f"{stage}/expected_log_prob": loss.item()})  # type: ignore
         return {
+            "val_loss": loss,
             "y": batch.y.view(-1),
-            "predicted_means": variational_dist.mean,
+            "predicted_means": variational_dist.mean.round(),
             "predicted_stddevs": variational_dist.stddev,
         }
 
