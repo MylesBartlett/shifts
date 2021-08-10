@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from bolts.common import MetricDict, Stage
 from bolts.data import BinarySample, PBDataModule
 from bolts.models import ModelBase
+from bolts.structures import MetricDict, Stage
 from kit.torch import TrainingMode
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
@@ -76,7 +76,7 @@ class SimpleRegression(ModelBase):
         mean, std = self(batch.x)
         variational_dist = td.Normal(mean, std)
         loss = -variational_dist.log_prob(batch.y).mean()
-        self.log(f"{stage}/val_loss", loss.item())  # type: ignore
+        self.log(f"{stage.value}/val_loss", loss.item())  # type: ignore
         return {
             "y": batch.y.view(-1),
             "predicted_means": variational_dist.mean.round(),
@@ -98,12 +98,12 @@ class SimpleRegression(ModelBase):
             errors=errors, uncertainty=predicted_stddevs.detach().cpu(), threshold=thresh, beta=1.0
         )
         results_dict = dict(f_auc=f_auc, f95=f95)
-        results_dict = {f"{stage}/{key}": value for key, value in results_dict.items()}
+        results_dict = {f"{stage.value}/{key}": value for key, value in results_dict.items()}
         results_dict["preds_mean"] = self.target_scaler.inverse_transform(
             predicted_means.detach().cpu()
         )
         results_dict["preds_std"] = predicted_stddevs.detach().cpu()
-        if stage == "test":
+        if stage is Stage.test:
             self.results_dict = results_dict
         return results_dict
 

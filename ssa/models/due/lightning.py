@@ -1,10 +1,10 @@
 """PyTorch-Lightning wrapper for DUE."""
 from __future__ import annotations
 
-from bolts.common import MetricDict, Stage
 from bolts.data.datamodules.base import PBDataModule
 from bolts.data.structures import NamedSample, TernarySample
 from bolts.models import ModelBase
+from bolts.structures import MetricDict, Stage
 from gpytorch.distributions import MultivariateNormal
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import VariationalELBO
@@ -159,7 +159,7 @@ class DUE(ModelBase):
     def _inference_step(self, batch: TernarySample, *, stage: Stage) -> STEP_OUTPUT:
         variational_dist = self.dklgp(batch.x)
         loss = self.likelihood.expected_log_prob(input=variational_dist, target=batch.y).mean()
-        self.log_dict({f"{stage}/expected_log_prob": loss.item()})  # type: ignore
+        self.log_dict({f"{stage.value}/expected_log_prob": loss.item()})  # type: ignore
         return {
             "y": batch.y.view(-1),
             "predicted_means": variational_dist.mean,
@@ -182,12 +182,12 @@ class DUE(ModelBase):
             errors=errors, uncertainty=predicted_stddevs.detach().cpu(), threshold=thresh, beta=1.0
         )
         results_dict = dict(f_auc=f_auc, f95=f95)
-        results_dict = {f"{stage}/{key}": value for key, value in results_dict.items()}
+        results_dict = {f"{stage.value}/{key}": value for key, value in results_dict.items()}
         results_dict["preds_mean"] = self.target_scaler.inverse_transform(
             predicted_means.detach().cpu()
         )
         results_dict["preds_std"] = predicted_stddevs.detach().cpu()
-        if stage == "test":
+        if stage is Stage.test:
             self.results_dict = results_dict
         return results_dict
 
