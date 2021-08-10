@@ -159,8 +159,8 @@ class WeatherDataModule(PBDataModule):
         self.feature_transform.transform(train_data.x)
         # self.feature_transform.transform(test_data.x)
         # Target normalization
-        self.target_transform.fit_transform(val_data.y)
-        self.target_transform.transform(train_data.y)
+        self.target_transform.fit_transform(train_data.y)
+        self.target_transform.transform(val_data.y)
         # self.feature_transform.transform(test_data.y)
         test_data = val_data
 
