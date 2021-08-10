@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from bolts.structures import Stage
 import hydra
 from hydra.utils import instantiate, to_absolute_path
 from kit.hydra import SchemaRegistration
@@ -93,9 +94,13 @@ def start(cfg: Config, raw_config: Optional[Dict[str, Any]]) -> None:
     cfg.model.build(datamodule=cfg.data, trainer=cfg.trainer)
     # Fit the model
     es_callback = EarlyStopping(
-        monitor="val_loss", min_delta=0.00, patience=10, verbose=True, mode="min"
+        monitor=f"{Stage.validate.value}/val_loss",
+        min_delta=0.00,
+        patience=10,
+        verbose=True,
+        mode="min",
     )
-    ckpt_callback = ModelCheckpoint(monitor="val_loss", mode="min")
+    ckpt_callback = ModelCheckpoint(monitor=f"{Stage.validate.value}/val_loss", mode="min")
     cfg.trainer.callbacks = [ckpt_callback, es_callback]
     print("Fitting model.")
     cfg.trainer.fit(model=cfg.model, datamodule=cfg.data)
