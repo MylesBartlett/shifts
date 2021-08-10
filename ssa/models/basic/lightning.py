@@ -97,4 +97,4 @@ class SimpleRegression(ModelBase):
         z = self.net(x)
         mean: Tensor = self.mean_net(z)
         std: Tensor = self.std_net(z) + torch.finfo(torch.float32).eps
-        return mean, std
+        return mean.squeeze(), std.squeeze()
