@@ -48,7 +48,7 @@ class SimpleRegression(ModelBase):
             nn.SiLU(),
         )
         self.mean_net = nn.Sequential(nn.Linear(1_000, 1), nn.Sigmoid())
-        self.std_net = nn.Sequential(nn.Linear(1_000, 1), nn.ReLU())
+        self.std_net = nn.Sequential(nn.Linear(1_000, 1), nn.Sigmoid())
 
         self.feature_scaler = datamodule.feature_transform
         self.target_scaler = datamodule.target_transform
