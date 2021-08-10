@@ -155,12 +155,12 @@ class WeatherDataModule(PBDataModule):
         # -- let's simply set the validation data as the test data for now
         # test_data = WeatherDataset(root=self.root, split=DataSplit.eval)
         # Feature normalization
-        self.feature_transform.fit_transform(train_data.x)
-        self.feature_transform.transform(val_data.x)
+        self.feature_transform.fit_transform(val_data.x)
+        self.feature_transform.transform(train_data.x)
         # self.feature_transform.transform(test_data.x)
         # Target normalization
-        self.target_transform.fit_transform(train_data.y)
-        self.target_transform.transform(val_data.y)
+        self.target_transform.fit_transform(val_data.y)
+        self.target_transform.transform(train_data.y)
         # self.feature_transform.transform(test_data.y)
         test_data = val_data
 
