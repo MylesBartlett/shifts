@@ -18,6 +18,8 @@ __all__ = ["SimpleRegression"]
 
 class SimpleRegression(ModelBase):
     net: nn.Module
+    mean_net: nn.Module
+    std_net: nn.Module
 
     def __init__(
         self,
@@ -40,12 +42,13 @@ class SimpleRegression(ModelBase):
 
     def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
         self.net = nn.Sequential(
-            nn.Linear(datamodule.dim_x[0], 100),
-            nn.ReLU(),
-            nn.Linear(100, 100),
-            nn.ReLU(),
-            nn.Linear(100, 2),
+            nn.Linear(datamodule.dim_x[0], 1_000),
+            nn.SiLU(),
+            nn.Linear(1_000, 1_000),
+            nn.SiLU(),
         )
+        self.mean_net = nn.Linear(1_000, 1)
+        self.std_net = nn.Sequential(nn.Linear(1_000, 1), nn.ReLU())
 
         self.feature_scaler = datamodule.feature_transform
         self.target_scaler = datamodule.target_transform
@@ -91,5 +94,7 @@ class SimpleRegression(ModelBase):
         return results_dict
 
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor]:
-        mean_std = self.net(x)
-        return mean_std[:, 0], mean_std[:, 1].relu() + torch.finfo(torch.float32).eps
+        z = self.net(x)
+        mean: Tensor = self.mean_net(z)
+        std: Tensor = self.std_net + torch.finfo(torch.float32).eps
+        return mean, std
