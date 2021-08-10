@@ -101,7 +101,7 @@ def start(cfg: Config, raw_config: Optional[Dict[str, Any]]) -> None:
         mode="min",
     )
     ckpt_callback = ModelCheckpoint(monitor=f"{Stage.validate.value}/val_loss", mode="min")
-    cfg.trainer.callbacks = [ckpt_callback, es_callback]
+    cfg.trainer.callbacks += [ckpt_callback, es_callback]
     print("Fitting model.")
     cfg.trainer.fit(model=cfg.model, datamodule=cfg.data)
     cfg.trainer.test(datamodule=cfg.data)
