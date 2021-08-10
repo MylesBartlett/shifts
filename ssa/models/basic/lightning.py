@@ -101,7 +101,7 @@ class SimpleRegression(ModelBase):
         results_dict = {f"{stage.value}/{key}": value for key, value in results_dict.items()}
         results_dict["preds_mean"] = self.target_scaler.inverse_transform(
             predicted_means.detach().cpu()
-        ).round()
+        )
         results_dict["preds_std"] = predicted_stddevs.detach().cpu()
         if stage is Stage.test:
             self.results_dict = results_dict
