@@ -75,9 +75,7 @@ class Experiment:
         preds = self.data.target_transform.inverse_transform(preds)
         preds_dc = Prediction(pred=preds.cpu().numpy(), uncertainty=uncertainty.cpu().numpy())
 
-        produce_submission(
-            predictions=preds_dc, results_dir=Path(to_absolute_path(self.exp.results_dir))
-        )
+        produce_submission(predictions=preds_dc, results_dir=Path(self.exp.results_dir))
         exp_logger.experiment.finish()
 
 

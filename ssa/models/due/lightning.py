@@ -191,7 +191,7 @@ class DUE(pl.LightningModule):
         pred_stddevs = torch.cat([step_output["pred_stddevs"] for step_output in outputs], 0)
         targets = torch.cat([step_output["targets"] for step_output in outputs], 0)
         # squared error
-        errors = (pred_means - targets) ** 2
+        errors = ((pred_means - targets) ** 2).detach().cpu()
         # Use an acceptable error threshold of 1 degree
         thresh = 1.0
         # Get all metrics
