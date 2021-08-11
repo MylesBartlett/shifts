@@ -44,7 +44,7 @@ class SimpleRegression(pl.LightningModule):
         num_features: int = 128,
         snorm_coeff: float = 0.95,
         weight_decay: float = 0.0,
-    ):
+    ) -> None:
         super().__init__()
         self.lr = lr
         self.weight_decay = weight_decay
