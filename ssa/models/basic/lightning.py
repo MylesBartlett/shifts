@@ -147,8 +147,8 @@ class SimpleRegression(pl.LightningModule):
         mean, std = self(batch.x)
         variational_dist = self._dist(mean, std)
         loss = self._get_loss(variational_dist, batch)
-        self.train_mse(variational_dist.mean, batch.y)
-        self.train_mae(variational_dist.mean, batch.y)
+        self.val_mse(variational_dist.mean, batch.y)
+        self.val_mae(variational_dist.mean, batch.y)
         self.log_dict(
             {
                 f"{Stage.validate.value}/loss": float(loss.item()),  # type: ignore
