@@ -15,7 +15,7 @@ palkit = "^0.3.8"
 pytorch-lightning = "^1.4.1"
 sklearn = "^0.0"
 tqdm = "^4.62.0"
-wandb = "^0.11.2"
+wandb = "^0.12.0"
 gpytorch = "^1.5.0"
 
 [tool.poetry.dev-dependencies]
@@ -87,7 +87,6 @@ reportMissingTypeStubs = "warning"
 strictListInference = true
 strictSetInference = true
 strictParameterNoneValue = true
-venv = "shifts"
 
 [tool.mypy]
 python_version = "3.8"
