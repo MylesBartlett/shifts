@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+from typing import Mapping, NamedTuple
 
-from bolts.data import BinarySample, PBDataModule
-from bolts.models import ModelBase
-from bolts.structures import MetricDict, Stage
+from bolts.data import BinarySample, NamedSample, PBDataModule
+from bolts.structures import LRScheduler, Stage
+from kit import implements
 from kit.torch import TrainingMode
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
 import torch
-from torch import Tensor, nn
+from torch import Tensor, nn, optim
 import torch.distributions as td
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
+from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
 
 from ssa.weather.assessment import f_beta_metrics
 
@@ -18,7 +20,13 @@ from ..due import ActivationFn, FCResNet
 __all__ = ["SimpleRegression"]
 
 
-class SimpleRegression(ModelBase):
+class ValStepOut(NamedTuple):
+    pred_means: Tensor
+    pred_stddevs: Tensor
+    targets: Tensor
+
+
+class SimpleRegression(pl.LightningModule):
     feature_extractor: nn.Module
     mean_std_net: nn.Module
 
@@ -37,20 +45,27 @@ class SimpleRegression(ModelBase):
         snorm_coeff: float = 0.95,
         weight_decay: float = 0.0,
     ):
-        super().__init__(
-            lr=lr,
-            weight_decay=weight_decay,
-            lr_initial_restart=lr_initial_restart,
-            lr_restart_mult=lr_restart_mult,
-            lr_sched_interval=lr_sched_interval,
-            lr_sched_freq=lr_sched_freq,
-        )
+        super().__init__()
+        self.lr = lr
+        self.weight_decay = weight_decay
+        self.lr_initial_restart = lr_initial_restart
+        self.lr_restart_mult = lr_restart_mult
+        self.lr_sched_interval = lr_sched_interval
+        self.lr_sched_freq = lr_sched_freq
         self.activation_fn = activation_fn
         self.depth = depth
         self.dropout_rate = dropout_rate
         self.n_power_iterations = n_power_iterations
         self.num_features = num_features
         self.snorm_coeff = snorm_coeff
+        # TODO: set the below with args?
+        self._dist = td.Normal
+
+        self.mae = MetricCollection({f"{stage.name}": MeanAbsoluteError() for stage in Stage})
+        self.mse = MetricCollection({f"{stage.name}": MeanSquaredError() for stage in Stage})
+
+    def _get_loss(self, variational_dist: td.Distribution, batch: BinarySample) -> Tensor:
+        return -variational_dist.log_prob(batch.y).mean()
 
     def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
         self.feature_extractor = FCResNet(
@@ -67,28 +82,52 @@ class SimpleRegression(ModelBase):
         self.feature_scaler = datamodule.feature_transform
         self.target_scaler = datamodule.target_transform
 
+    @implements(pl.LightningModule)
+    def configure_optimizers(
+        self,
+    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
+        opt = optim.AdamW(
+            self.parameters(),
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+        )
+        sched = {
+            "scheduler": CosineAnnealingWarmRestarts(
+                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+            ),
+            "interval": self.lr_sched_interval.name,
+            "frequency": self.lr_sched_freq,
+        }
+        return [opt], [sched]
+
+    @implements(pl.LightningModule)
+    def predict_step(
+        self, batch: Tensor | NamedSample, batch_idx: int, dataloader_idx: int | None = None
+    ) -> Tensor:
+        x = batch if isinstance(batch, Tensor) else batch.x
+        mean, std = self(x)
+        variational_dist = self._dist(mean, std)
+        return torch.stack([variational_dist.mean, variational_dist.stddev], dim=-1)
+
+    @implements(pl.LightningModule)
     def training_step(self, batch, batch_idx) -> Tensor:
         mean, std = self(batch.x)
-        out_dist = td.Normal(mean, std)
-        return -out_dist.log_prob(batch.y).mean()
+        out_dist = self._dist(mean, std)
+        loss = self._get_loss(out_dist, batch)
+        results_dict = {f"{Stage.fit.value}/loss": float(loss.item())}  # type: ignore
+        for metric_name, metric in self.__dict__.items():
+            if metric_name in ("mae", "mse"):
+                _m = metric[f"{Stage.fit.name}"]
+                _m(out_dist.mean, batch.y)
+                results_dict.update({f"{Stage.fit.value}/{_m.__class__.__name__}": _m})
+        self.log_dict(results_dict)
+        return loss
 
-    def _inference_step(self, batch: BinarySample, *, stage: Stage) -> STEP_OUTPUT:
-        mean, std = self(batch.x)
-        variational_dist = td.Normal(mean, std)
-        loss = -variational_dist.log_prob(batch.y).mean()
-        self.log(f"{stage.value}/val_loss", loss.item())  # type: ignore
-        return {
-            "y": batch.y.view(-1),
-            "predicted_means": variational_dist.mean,
-            "predicted_stddevs": variational_dist.stddev,
-        }
-
-    def _inference_epoch_end(self, outputs: EPOCH_OUTPUT, stage: Stage) -> MetricDict:
-        targets = torch.cat([step_output["y"] for step_output in outputs], 0)
-        predicted_means = torch.cat([step_output["predicted_means"] for step_output in outputs], 0)
-        predicted_stddevs = torch.cat(
-            [step_output["predicted_stddevs"] for step_output in outputs], 0
-        )
+    @implements(pl.LightningModule)
+    def validation_epoch_end(self, outputs: list[ValStepOut]) -> None:
+        targets = torch.cat([step_output.targets for step_output in outputs], 0)
+        predicted_means = torch.cat([step_output.pred_means for step_output in outputs], 0)
+        predicted_stddevs = torch.cat([step_output.pred_stddevs for step_output in outputs], 0)
         # squared error
         errors = ((predicted_means - targets) ** 2).detach().cpu()
         # Use an acceptable error threshold of 1 degree
@@ -98,15 +137,34 @@ class SimpleRegression(ModelBase):
             errors=errors, uncertainty=predicted_stddevs.detach().cpu(), threshold=thresh, beta=1.0
         )
         results_dict = dict(f_auc=f_auc, f95=f95)
-        results_dict = {f"{stage.value}/{key}": value for key, value in results_dict.items()}
+        results_dict = {
+            f"{Stage.validate.value}/{key}": value for key, value in results_dict.items()
+        }
         results_dict["preds_mean"] = self.target_scaler.inverse_transform(
             predicted_means.detach().cpu()
         )
         results_dict["preds_std"] = predicted_stddevs.detach().cpu()
-        if stage is Stage.test:
-            self.results_dict = results_dict
-        return results_dict
+        self.log_dict(results_dict)
 
+    @implements(pl.LightningModule)
+    def validation_step(self, batch: BinarySample, batch_idx: int) -> ValStepOut:
+        mean, std = self(batch.x)
+        variational_dist = self._dist(mean, std)
+        loss = -variational_dist.log_prob(batch.y).mean()
+        results_dict = {f"{Stage.validate.value}/val_loss": loss.item()}  # type: ignore
+        for metric_name, metric in self.__dict__.items():
+            if metric_name in ("mae", "mse"):
+                _m = metric[f"{Stage.validate.name}"]
+                _m(variational_dist.mean, batch.y)
+                results_dict.update({f"{Stage.fit.value}/{_m.__class__.__name__}": _m})
+        self.log_dict(results_dict)
+        return ValStepOut(
+            targets=batch.y.view(-1),
+            pred_means=variational_dist.mean,
+            pred_stddevs=variational_dist.stddev,
+        )
+
+    @implements(nn.Module)
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor]:
         z = self.feature_extractor(x)
         mean_std: Tensor = self.mean_std_net(z)

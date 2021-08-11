@@ -1,10 +1,10 @@
 """PyTorch-Lightning wrapper for DUE."""
 from __future__ import annotations
-from typing import Mapping
+from typing import Mapping, NamedTuple
 
-from bolts.common import LRScheduler
 from bolts.data.datamodules.base import PBDataModule
 from bolts.data.structures import BinarySample, NamedSample
+from bolts.structures import LRScheduler, Stage
 from gpytorch.distributions import MultivariateNormal
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import VariationalELBO
@@ -24,6 +24,12 @@ from .dkl import DKLGP, GPKernel, get_initial_inducing_points, get_initial_lengt
 from .fc_resnet import ActivationFn, FCResNet
 
 __all__ = ["DUE"]
+
+
+class ValStepOut(NamedTuple):
+    pred_means: Tensor
+    pred_stddevs: Tensor
+    targets: Tensor
 
 
 class DUE(pl.LightningModule):
@@ -90,24 +96,6 @@ class DUE(pl.LightningModule):
 
         self.likelihood = GaussianLikelihood()
 
-    @implements(pl.LightningModule)
-    def configure_optimizers(
-        self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
-        opt = optim.AdamW(
-            self.parameters(),
-            lr=self.lr,
-            weight_decay=self.weight_decay,
-        )
-        sched = {
-            "scheduler": CosineAnnealingWarmRestarts(
-                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
-            ),
-            "interval": self.lr_sched_interval.name,
-            "frequency": self.lr_sched_freq,
-        }
-        return [opt], [sched]
-
     def _get_loss(self, variational_dist: MultivariateNormal, *, batch: BinarySample) -> Tensor:
         return -self.loss_fn(variational_dist, target=batch.y)
 
@@ -167,32 +155,49 @@ class DUE(pl.LightningModule):
         self.feature_scaler = datamodule.feature_transform
         self.target_scaler = datamodule.target_transform
 
+    def inference_step(
+        self, batch: Tensor | NamedSample, batch_idx: int, dataloader_idx: int | None = None
+    ) -> Tensor:
+        x = batch if isinstance(batch, Tensor) else batch.x
+        variational_dist = self.dklgp(x)
+        return torch.stack([variational_dist.mean, variational_dist.stddev], dim=-1)
+
+    @implements(pl.LightningModule)
+    def configure_optimizers(
+        self,
+    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
+        opt = optim.AdamW(
+            self.parameters(),
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+        )
+        sched = {
+            "scheduler": CosineAnnealingWarmRestarts(
+                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+            ),
+            "interval": self.lr_sched_interval.name,
+            "frequency": self.lr_sched_freq,
+        }
+        return [opt], [sched]
+
+    @implements(pl.LightningModule)
+    def predict_step(
+        self, batch: Tensor | NamedSample, batch_idx: int, dataloader_idx: int | None = None
+    ) -> Tensor:
+        return self.inference_step(batch=batch, batch_idx=batch_idx, dataloader_idx=dataloader_idx)
+
     @implements(pl.LightningModule)
     def training_step(self, batch: BinarySample, batch_idx: int) -> Tensor:
         logits = self.forward(batch.x)
         loss = self._get_loss(variational_dist=logits, batch=batch)
-        self.log_dict({f"train/loss": float(loss.item())})  # type: ignore
+        self.log_dict({f"{Stage.fit.value}/loss": float(loss.item())})  # type: ignore
         return loss
 
     @implements(pl.LightningModule)
-    def validation_step(self, batch: NamedSample, batch_idx: int) -> STEP_OUTPUT:
-        x = batch if isinstance(batch, Tensor) else batch.x
-        variational_dist = self.dklgp(x)
-
-        loss = self.likelihood.expected_log_prob(input=variational_dist, target=batch.y).mean()
-        self.log_dict({f"val/expected_log_prob": loss.item()})  # type: ignore
-
-        return {
-            "pred_means": variational_dist.mean,
-            "pred_stddevs": variational_dist.stddev,
-            "targets": batch.y,
-        }
-
-    @implements(pl.LightningModule)
-    def validation_epoch_end(self, outputs: EPOCH_OUTPUT) -> None:
-        pred_means = torch.cat([step_output["pred_means"] for step_output in outputs], 0)
-        pred_stddevs = torch.cat([step_output["pred_stddevs"] for step_output in outputs], 0)
-        targets = torch.cat([step_output["targets"] for step_output in outputs], 0)
+    def validation_epoch_end(self, outputs: list[ValStepOut]) -> None:
+        pred_means = torch.cat([step_output.pred_means for step_output in outputs], 0)
+        pred_stddevs = torch.cat([step_output.pred_stddevs for step_output in outputs], 0)
+        targets = torch.cat([step_output.targets for step_output in outputs], 0)
         # squared error
         errors = ((pred_means - targets) ** 2).detach().cpu()
         # Use an acceptable error threshold of 1 degree
@@ -202,24 +207,24 @@ class DUE(pl.LightningModule):
             errors=errors, uncertainty=pred_stddevs, threshold=thresh, beta=1.0
         )
         results_dict = dict(f_auc=f_auc, f95=f95)
-        results_dict = {f"val/{key}": value for key, value in results_dict.items()}
-
+        results_dict = {
+            f"{Stage.validate.value}/{key}": value for key, value in results_dict.items()
+        }
         self.log_dict(results_dict)
 
-        return results_dict
-
-    def inference_step(
-        self, batch: Tensor | NamedSample, batch_idx: int, dataloader_idx: int | None = None
-    ) -> Tensor:
+    @implements(pl.LightningModule)
+    def validation_step(self, batch: BinarySample, batch_idx: int) -> ValStepOut:
         x = batch if isinstance(batch, Tensor) else batch.x
         variational_dist = self.dklgp(x)
-        return torch.stack([variational_dist.mean, variational_dist.stddev], dim=-1)
 
-    @implements(pl.LightningModule)
-    def predict_step(
-        self, batch: Tensor | NamedSample, batch_idx: int, dataloader_idx: int | None = None
-    ) -> Tensor:
-        return self.inference_step(batch=batch, batch_idx=batch_idx, dataloader_idx=dataloader_idx)
+        loss = self.likelihood.expected_log_prob(input=variational_dist, target=batch.y).mean()
+        self.log_dict({f"{Stage.validate.value}/expected_log_prob": loss.item()})  # type: ignore
+
+        return ValStepOut(
+            pred_means=variational_dist.mean,
+            pred_stddevs=variational_dist.stddev,
+            targets=batch.y,
+        )
 
     @implements(nn.Module)
     def forward(self, x: Tensor) -> MultivariateNormal:
