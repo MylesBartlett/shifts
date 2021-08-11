@@ -70,7 +70,7 @@ class ShiftsBaseModel(pl.LightningModule):
         thresh = 1.0
         # Get all metrics
         f_auc, f95, _ = f_beta_metrics(
-            errors=errors, uncertainty=pred_stddevs, threshold=thresh, beta=1.0
+            errors=errors, uncertainty=pred_stddevs.detach().cpu(), threshold=thresh, beta=1.0
         )
         results_dict = dict(f_auc=f_auc, f95=f95)
         results_dict = {
