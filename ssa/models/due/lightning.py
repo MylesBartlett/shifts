@@ -102,20 +102,6 @@ class DUE(BaseVariationalModel):
     def forward(self, x: Tensor) -> Distribution:
         return self.dklgp(x)
 
-    @implements(BaseVariationalModel)
-    def validation_step(self, batch: BinarySample, batch_idx: int) -> ValStepOut:
-        x = batch if isinstance(batch, Tensor) else batch.x
-        variational_dist = self.dklgp(x)
-
-        loss = self.likelihood.expected_log_prob(input=variational_dist, target=batch.y).mean()
-        self.log_dict({f"{Stage.validate.value}/expected_log_prob": loss.item()})  # type: ignore
-
-        return ValStepOut(
-            pred_means=variational_dist.mean,
-            pred_stddevs=variational_dist.stddev,
-            targets=batch.y,
-        )
-
     @implements(ShiftsBaseModel)
     def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
         self.feature_extractor = FCResNet(
@@ -168,6 +154,20 @@ class DUE(BaseVariationalModel):
             model=self.dklgp.gp,
             num_data=datamodule.num_train_samples,
             beta=self.beta,
+        )
+
+    @implements(ShiftsBaseModel)
+    def validation_step(self, batch: BinarySample, batch_idx: int) -> ValStepOut:
+        x = batch if isinstance(batch, Tensor) else batch.x
+        variational_dist = self.dklgp(x)
+
+        loss = self.likelihood.expected_log_prob(input=variational_dist, target=batch.y).mean()
+        self.log_dict({f"{Stage.validate.value}/expected_log_prob": loss.item()})  # type: ignore
+
+        return ValStepOut(
+            pred_means=variational_dist.mean,
+            pred_stddevs=variational_dist.stddev,
+            targets=batch.y,
         )
 
 

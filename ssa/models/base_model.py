@@ -30,11 +30,53 @@ class ShiftsBaseModel(pl.LightningModule):
         ...
 
     @implements(pl.LightningModule)
+    def configure_optimizers(
+        self,
+    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
+        opt = optim.AdamW(
+            self.parameters(),
+            lr=self.lr,
+            weight_decay=self.weight_decay,
+        )
+        sched = {
+            "scheduler": CosineAnnealingWarmRestarts(
+                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
+            ),
+            "interval": self.lr_sched_interval.name,
+            "frequency": self.lr_sched_freq,
+        }
+        return [opt], [sched]
+
+    @implements(pl.LightningModule)
     @abstractmethod
     def predict_step(
         self, batch: Tensor | NamedSample, batch_idx: int, dataloader_idx: int | None = None
     ) -> Tensor:
         ...
+
+    @implements(pl.LightningModule)
+    @abstractmethod
+    def validation_step(self, batch: BinarySample, batch_idx: int) -> ValStepOut:
+        ...
+
+    @implements(pl.LightningModule)
+    def validation_epoch_end(self, outputs: list[ValStepOut]) -> None:
+        pred_means = torch.cat([step_output.pred_means for step_output in outputs], 0)
+        pred_stddevs = torch.cat([step_output.pred_stddevs for step_output in outputs], 0)
+        targets = torch.cat([step_output.targets for step_output in outputs], 0)
+        # squared error
+        errors = ((pred_means - targets) ** 2).detach().cpu()
+        # Use an acceptable error threshold of 1 degree
+        thresh = 1.0
+        # Get all metrics
+        f_auc, f95, _ = f_beta_metrics(
+            errors=errors, uncertainty=pred_stddevs, threshold=thresh, beta=1.0
+        )
+        results_dict = dict(f_auc=f_auc, f95=f95)
+        results_dict = {
+            f"{Stage.validate.value}/{key}": value for key, value in results_dict.items()
+        }
+        self.log_dict(results_dict)
 
 
 class BaseVariationalModel(ShiftsBaseModel):
@@ -67,33 +109,10 @@ class BaseVariationalModel(ShiftsBaseModel):
     def _inference_step(self, x: Tensor, batch_idx: int, dataloader_idx: int | None = None):
         ...
 
-    @implements(pl.LightningModule)
-    @abstractmethod
-    def validation_step(self, batch: BinarySample, batch_idx: int) -> ValStepOut:
-        ...
-
     @implements(nn.Module)
     @abstractmethod
     def forward(self, x: Tensor) -> td.Distribution:
         ...
-
-    @implements(pl.LightningModule)
-    def configure_optimizers(
-        self,
-    ) -> tuple[list[optim.Optimizer], list[Mapping[str, LRScheduler | int | TrainingMode]]]:
-        opt = optim.AdamW(
-            self.parameters(),
-            lr=self.lr,
-            weight_decay=self.weight_decay,
-        )
-        sched = {
-            "scheduler": CosineAnnealingWarmRestarts(
-                optimizer=opt, T_0=self.lr_initial_restart, T_mult=self.lr_restart_mult
-            ),
-            "interval": self.lr_sched_interval.name,
-            "frequency": self.lr_sched_freq,
-        }
-        return [opt], [sched]
 
     @implements(ShiftsBaseModel)
     def predict_step(
@@ -115,22 +134,3 @@ class BaseVariationalModel(ShiftsBaseModel):
         }
         self.log_dict(results_dict)
         return loss
-
-    @implements(pl.LightningModule)
-    def validation_epoch_end(self, outputs: list[ValStepOut]) -> None:
-        pred_means = torch.cat([step_output.pred_means for step_output in outputs], 0)
-        pred_stddevs = torch.cat([step_output.pred_stddevs for step_output in outputs], 0)
-        targets = torch.cat([step_output.targets for step_output in outputs], 0)
-        # squared error
-        errors = ((pred_means - targets) ** 2).detach().cpu()
-        # Use an acceptable error threshold of 1 degree
-        thresh = 1.0
-        # Get all metrics
-        f_auc, f95, _ = f_beta_metrics(
-            errors=errors, uncertainty=pred_stddevs, threshold=thresh, beta=1.0
-        )
-        results_dict = dict(f_auc=f_auc, f95=f95)
-        results_dict = {
-            f"{Stage.validate.value}/{key}": value for key, value in results_dict.items()
-        }
-        self.log_dict(results_dict)

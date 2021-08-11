@@ -71,7 +71,20 @@ class SimpleRegression(BaseVariationalModel):
             mean_std[:, 0].sigmoid(), mean_std[:, 1].sigmoid() + torch.finfo(torch.float32).eps
         )
 
-    @implements(BaseVariationalModel)
+    @implements(ShiftsBaseModel)
+    def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
+        self.feature_extractor = FCResNet(
+            in_channels=datamodule.dim_x[0],
+            num_features=self.num_features,
+            depth=self.depth,
+            snorm_coeff=self.snorm_coeff,
+            n_power_iterations=self.n_power_iterations,
+            dropout_rate=self.dropout_rate,
+            activation_fn=self.activation_fn,
+        )
+        self.mean_std_net = nn.Linear(self.num_features, 2)
+
+    @implements(ShiftsBaseModel)
     def validation_step(self, batch: BinarySample, batch_idx: int) -> ValStepOut:
         variational_dist = self.forward(batch.x)
         loss = self._get_loss(variational_dist, batch)
@@ -89,16 +102,3 @@ class SimpleRegression(BaseVariationalModel):
             pred_means=variational_dist.mean,
             pred_stddevs=variational_dist.stddev,
         )
-
-    @implements(ShiftsBaseModel)
-    def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
-        self.feature_extractor = FCResNet(
-            in_channels=datamodule.dim_x[0],
-            num_features=self.num_features,
-            depth=self.depth,
-            snorm_coeff=self.snorm_coeff,
-            n_power_iterations=self.n_power_iterations,
-            dropout_rate=self.dropout_rate,
-            activation_fn=self.activation_fn,
-        )
-        self.mean_std_net = nn.Linear(self.num_features, 2)
