@@ -41,6 +41,6 @@ def deserialize_numpy(serialized_string: str, decompress: bool = False) -> np.nd
     Returns:
         np.ndarray: deserialized numpy array
     """
-    str = maybe_decompress(serialized_string, decompress)
-    buf = io.BytesIO(str)
+    _str = maybe_decompress(serialized_string, decompress)
+    buf = io.BytesIO(_str)
     return np.load(buf)

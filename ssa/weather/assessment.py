@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn.metrics import *
+from sklearn.metrics import auc, precision_recall_curve, roc_auc_score
 from sklearn.utils import assert_all_finite, check_consistent_length, column_or_1d
 from sklearn.utils.extmath import stable_cumsum
 from sklearn.utils.multiclass import type_of_target
@@ -155,7 +155,7 @@ def _check_pos_label_consistency(pos_label, y_true):
 def _binary_clf_curve_ret(y_true, y_score, pos_label=None, sample_weight=None):
     # Check to make sure y_true is valid
     y_type = type_of_target(y_true)
-    if not (y_type == "binary" or (y_type == "multiclass" and pos_label is not None)):
+    if y_type != "binary" and (y_type != "multiclass" or pos_label is None):
         raise ValueError("{0} format is not supported".format(y_type))
 
     check_consistent_length(y_true, y_score, sample_weight)
@@ -176,11 +176,7 @@ def _binary_clf_curve_ret(y_true, y_score, pos_label=None, sample_weight=None):
     desc_score_indices = np.argsort(y_score, kind="mergesort")[::-1]
     y_score = y_score[desc_score_indices]
     y_true = y_true[desc_score_indices]
-    if sample_weight is not None:
-        weight = sample_weight[desc_score_indices]
-    else:
-        weight = 1.0
-
+    weight = 1.0 if sample_weight is None else sample_weight[desc_score_indices]
     # y_score typically has many tied values. Here we extract
     # the indices associated with the distinct values. We also
     # concatenate a value for the end of the curve.

@@ -99,11 +99,11 @@ class SDCLoss:
                 self.plan_confidence_scores = np.concatenate(self.plan_confidence_scores, axis=0)
             else:
                 raise ValueError(
-                    f'Unexpected number of dims in `plan_confidence_scores`: ' f'{plan_array_dims}.'
+                    f'Unexpected number of dims in `plan_confidence_scores`: {plan_array_dims}.'
                 )
         except RuntimeError:
             # Don't need to do a concatenation
-            print('Detected differing number of predicted ' 'plans for each scene.')
+            print('Detected differing number of predicted plans for each scene.')
 
         self.pred_request_confidence_scores = np.concatenate(
             self.pred_request_confidence_scores, axis=0
@@ -347,7 +347,7 @@ class SDCLoss:
                 fbeta_aucs[f'{model_name}__{metric_key_prefix}__f_auc'] = f_auc
                 fbeta_aucs[f'{model_name}__{metric_key_prefix}__f95'] = f95
                 fbeta_retention_path = f'{retention_dir}/{model_name}__{metric_key_prefix}'
-                print(f'Stored fbeta retention results to ' f'{fbeta_retention_path}.')
+                print(f'Stored fbeta retention results to {fbeta_retention_path}.')
                 np.save(fbeta_retention_path, arr=retention)
 
                 # Compute retention/rejection arrays.
@@ -433,4 +433,4 @@ class SDCLoss:
         with open(model_results_path, 'w') as f:
             results_df.to_csv(path_or_buf=f, sep='\t', index=False)
 
-        print(f'Successfully {action_str} results dataframe ' f'at {model_results_path}.')
+        print(f'Successfully {action_str} results dataframe at {model_results_path}.')

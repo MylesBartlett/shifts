@@ -121,7 +121,7 @@ class AutoregressiveFlow(nn.Module):
         """
         # Output containers.
         y = list()
-        scales = list()
+        scales = []
 
         # Initial input variable.
         y_tm1 = torch.zeros(  # pylint: disable=no-member
@@ -179,8 +179,8 @@ class AutoregressiveFlow(nn.Module):
             with shape `[B]`.
         """
         # Output containers.
-        x = list()
-        scales = list()
+        x = []
+        scales = []
 
         # Initial input variable.
         y_tm1 = torch.zeros(  # pylint: disable=no-member

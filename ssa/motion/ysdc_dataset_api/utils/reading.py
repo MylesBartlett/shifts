@@ -77,7 +77,6 @@ def get_file_paths(dataset_path: str) -> List[str]:
     )
     res = []
     for d in sub_dirs:
-        # file_names = sorted(os.listdir(os.path.join(dataset_path, d)))
         file_names = sorted(os.listdir(d))
         res += [os.path.join(d, fname) for fname in file_names if fname.endswith('.pb')]
     return res

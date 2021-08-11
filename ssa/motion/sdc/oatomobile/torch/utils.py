@@ -33,4 +33,4 @@ def safe_torch_to_numpy(val):
     elif isinstance(val, torch.Tensor):
         return val.detach().cpu().numpy()
     else:
-        raise ValueError(f'val is neither or type `np.ndarray` nor `torch.Tensor`: ' f'{type(val)}')
+        raise ValueError(f'val is neither or type `np.ndarray` nor `torch.Tensor`: {type(val)}')

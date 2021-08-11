@@ -80,9 +80,9 @@ class TensorBoardLogger:
         if dataset_name in self.dataset_names:
             summary_writer = getattr(self, f'summary_writer_{dataset_name}', None)
             if summary_writer is None:
-                raise ValueError(f"Could not locate summary writer for " f"dataset {dataset_name}")
+                raise ValueError(f"Could not locate summary writer for dataset {dataset_name}")
         else:
-            raise ValueError(f'Unrecognized dataset name ' f'{dataset_name} passed.')
+            raise ValueError(f'Unrecognized dataset name {dataset_name} passed.')
 
         with summary_writer.as_default():
             for loss_name, loss in loss_dict.items():

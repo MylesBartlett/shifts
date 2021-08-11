@@ -72,7 +72,7 @@ class WandbLogger:
 
     @staticmethod
     def construct_loggable_dict(dataset_mode_to_loss_dict):
-        wandb_loss_dict = dict()
+        wandb_loss_dict = {}
         for dataset_mode, loss_dict in dataset_mode_to_loss_dict.items():
             for key, value in loss_dict.items():
                 key = f'{dataset_mode}_{key}'
@@ -102,9 +102,7 @@ class WandbLogger:
             else:
                 summary_keys.append(key)
 
-        line = ''
-        for key in summary_keys:
-            line += f'{key} {loss_dict[key]} | '
+        line = ''.join(f'{key} {loss_dict[key]} | ' for key in summary_keys)
         line += f'\nTrain Stats\n'
         for key in train_keys:
             line += f'{key} {loss_dict[key]:.3f} | '
@@ -116,27 +114,3 @@ class WandbLogger:
             line += f'{key} {loss_dict[key]:.3f} | '
         line += '\n'
         print(line)
-
-    # @staticmethod
-    # def intermediate_log(loss_dict, num_steps, batch_index, epoch):
-    #     """Log during mini-batches."""
-    #
-    #     tb = 'train_batch'
-    #     ld = loss_dict
-    #
-    #     wandb_dict = dict(
-    #         batch_index=batch_index,
-    #         epoch=epoch)
-    #
-    #     losses = dict()
-    #
-    #     losses.update({f'{tb}_total_loss': ld['total_loss']})
-    #
-    #     if loss := ld.get('mae_loss', False):
-    #         losses.update({f'{tb}_mae_loss': loss})
-    #
-    #     losses = {i: j.detach().cpu().item() for i, j in losses.items()}
-    #     wandb_dict.update(losses)
-    #
-    #     print(f'step: {num_steps}, {wandb_dict}')
-    #     wandb.log(wandb_dict, step=num_steps)

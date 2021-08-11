@@ -201,7 +201,7 @@ class MetadataCache:
             os.path.join(self.metadata_cache_dir, f'{dataset_key}__request_ids.npy'), 'wb'
         ) as f:
             np.save(f, request_ids)
-        print(f'Saved predictions, conf scores, gt, request ids to ' f'{self.metadata_cache_dir}')
+        print(f'Saved predictions, conf scores, gt, request ids to {self.metadata_cache_dir}')
 
     def store_request_and_scene_dfs(self, request_df, scene_df):
         request_path = os.path.join(self.metadata_cache_dir, 'request.tsv')
@@ -221,7 +221,7 @@ class MetadataCache:
                 df = pd.concat([previous_df, df])
                 action_str = 'updated'
             except FileNotFoundError:
-                print(f'No previous results found at path {df_path}. ' f'Storing a new {df_type}.')
+                print(f'No previous results found at path {df_path}. Storing a new {df_type}.')
                 action_str = 'stored initial'
 
             # Store to file
@@ -277,10 +277,9 @@ def construct_full_dev_sets(dataset_key_to_arrs: Dict[str, Dict]) -> Dict[str, D
         dataset_key_to_arrs[full_dataset_key]['is_ood'] = np.concatenate(is_ood_arr, axis=0)
 
         for field in field_keys:
-            field_arr = []
-
-            for subdataset_key in subdataset_keys:
-                field_arr.append(dataset_key_to_arrs[subdataset_key][field])
+            field_arr = [
+                dataset_key_to_arrs[subdataset_key][field] for subdataset_key in subdataset_keys
+            ]
 
             dataset_key_to_arrs[full_dataset_key][field] = np.concatenate(field_arr, axis=0)
 
