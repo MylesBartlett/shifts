@@ -146,14 +146,14 @@ class SimpleRegression(pl.LightningModule):
     def validation_step(self, batch: BinarySample, batch_idx: int) -> ValStepOut:
         mean, std = self(batch.x)
         variational_dist = self._dist(mean, std)
-        loss = -variational_dist.log_prob(batch.y).mean()
+        loss = self._get_loss(variational_dist, batch)
         self.train_mse(variational_dist.mean, batch.y)
         self.train_mae(variational_dist.mean, batch.y)
         self.log_dict(
             {
-                f"{Stage.fit.value}/loss": float(loss.item()),  # type: ignore
-                f"{Stage.fit.value}/mse": self.train_mse,
-                f"{Stage.fit.value}/mae": self.train_mae,
+                f"{Stage.validate.value}/loss": float(loss.item()),  # type: ignore
+                f"{Stage.validate.value}/mse": self.val_mse,
+                f"{Stage.validate.value}/mae": self.val_mae,
             }
         )
         return ValStepOut(

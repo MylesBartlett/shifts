@@ -3,13 +3,11 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from bolts.structures import Stage
 import hydra
 from hydra.utils import instantiate, to_absolute_path
 from kit.hydra import SchemaRegistration
 from omegaconf import MISSING, OmegaConf
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 import torch
 
@@ -74,7 +72,7 @@ class Experiment:
         )
         preds_with_unc_cat = torch.cat(preds_with_unc_ls, dim=0)
         preds, uncertainty = torch.chunk(preds_with_unc_cat, chunks=2, dim=-1)
-        preds = self.data.target_transform.inverse_transform(preds)
+        preds = self.data.target_transform.inverse_transform(preds.cpu())
         preds_dc = Prediction(pred=preds.cpu().numpy(), uncertainty=uncertainty.cpu().numpy())
 
         produce_submission(predictions=preds_dc, results_dir=Path(self.exp.results_dir))
