@@ -122,7 +122,6 @@ class DKLGP(gpytorch.Module):
         super().__init__()
 
         self.feature_extractor = feature_extractor
-        initial_lengthscale
         self.gp = GP(
             num_outputs=num_outputs,
             kernel=kernel,

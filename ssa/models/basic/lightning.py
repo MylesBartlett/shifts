@@ -11,7 +11,7 @@ import torch
 from torch import Tensor, nn, optim
 import torch.distributions as td
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts
-from torchmetrics import MeanAbsoluteError, MeanSquaredError, MetricCollection
+from torchmetrics import MeanAbsoluteError, MeanSquaredError
 
 from ssa.weather.assessment import f_beta_metrics
 
@@ -61,8 +61,10 @@ class SimpleRegression(pl.LightningModule):
         # TODO: set the below with args?
         self._dist = td.Normal
 
-        self.mae = MetricCollection({f"{stage.name}": MeanAbsoluteError() for stage in Stage})
-        self.mse = MetricCollection({f"{stage.name}": MeanSquaredError() for stage in Stage})
+        self.train_mae = MeanAbsoluteError()
+        self.val_mae = MeanAbsoluteError()
+        self.train_mse = MeanSquaredError()
+        self.val_mse = MeanSquaredError()
 
     def _get_loss(self, variational_dist: td.Distribution, batch: BinarySample) -> Tensor:
         return -variational_dist.log_prob(batch.y).mean()
@@ -78,9 +80,6 @@ class SimpleRegression(pl.LightningModule):
             activation_fn=self.activation_fn,
         )
         self.mean_std_net = nn.Linear(self.num_features, 2)
-
-        self.feature_scaler = datamodule.feature_transform
-        self.target_scaler = datamodule.target_transform
 
     @implements(pl.LightningModule)
     def configure_optimizers(
@@ -112,14 +111,15 @@ class SimpleRegression(pl.LightningModule):
     @implements(pl.LightningModule)
     def training_step(self, batch, batch_idx) -> Tensor:
         mean, std = self(batch.x)
-        out_dist = self._dist(mean, std)
-        loss = self._get_loss(out_dist, batch)
-        results_dict = {f"{Stage.fit.value}/loss": float(loss.item())}  # type: ignore
-        for metric_name, metric in self.__dict__.items():
-            if metric_name in ("mae", "mse"):
-                _m = metric[f"{Stage.fit.name}"]
-                _m(out_dist.mean, batch.y)
-                results_dict.update({f"{Stage.fit.value}/{_m.__class__.__name__}": _m})
+        variational_dist = self._dist(mean, std)
+        loss = self._get_loss(variational_dist, batch)
+        self.train_mse(variational_dist.mean, batch.y)
+        self.train_mae(variational_dist.mean, batch.y)
+        results_dict = {
+            f"{Stage.fit.value}/loss": float(loss.item()),  # type: ignore
+            f"{Stage.fit.value}/mse": self.train_mse,
+            f"{Stage.fit.value}/mae": self.train_mae,
+        }
         self.log_dict(results_dict)
         return loss
 
@@ -140,10 +140,6 @@ class SimpleRegression(pl.LightningModule):
         results_dict = {
             f"{Stage.validate.value}/{key}": value for key, value in results_dict.items()
         }
-        results_dict["preds_mean"] = self.target_scaler.inverse_transform(
-            predicted_means.detach().cpu()
-        )
-        results_dict["preds_std"] = predicted_stddevs.detach().cpu()
         self.log_dict(results_dict)
 
     @implements(pl.LightningModule)
@@ -151,13 +147,15 @@ class SimpleRegression(pl.LightningModule):
         mean, std = self(batch.x)
         variational_dist = self._dist(mean, std)
         loss = -variational_dist.log_prob(batch.y).mean()
-        results_dict = {f"{Stage.validate.value}/val_loss": loss.item()}  # type: ignore
-        for metric_name, metric in self.__dict__.items():
-            if metric_name in ("mae", "mse"):
-                _m = metric[f"{Stage.validate.name}"]
-                _m(variational_dist.mean, batch.y)
-                results_dict.update({f"{Stage.fit.value}/{_m.__class__.__name__}": _m})
-        self.log_dict(results_dict)
+        self.train_mse(variational_dist.mean, batch.y)
+        self.train_mae(variational_dist.mean, batch.y)
+        self.log_dict(
+            {
+                f"{Stage.fit.value}/loss": float(loss.item()),  # type: ignore
+                f"{Stage.fit.value}/mse": self.train_mse,
+                f"{Stage.fit.value}/mae": self.train_mae,
+            }
+        )
         return ValStepOut(
             targets=batch.y.view(-1),
             pred_means=variational_dist.mean,

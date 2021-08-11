@@ -5,10 +5,9 @@ from typing import Mapping, NamedTuple
 from bolts.data.datamodules.base import PBDataModule
 from bolts.data.structures import BinarySample, NamedSample
 from bolts.structures import LRScheduler, Stage
-from gpytorch.distributions import MultivariateNormal
+from gpytorch.distributions import Distribution, MultivariateNormal
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import VariationalELBO
-from kit import implements
 from kit.decorators import implements, parsable
 from kit.torch import TrainingMode
 import pytorch_lightning as pl
@@ -96,7 +95,7 @@ class DUE(pl.LightningModule):
 
         self.likelihood = GaussianLikelihood()
 
-    def _get_loss(self, variational_dist: MultivariateNormal, *, batch: BinarySample) -> Tensor:
+    def _get_loss(self, variational_dist: Distribution, *, batch: BinarySample) -> Tensor:
         return -self.loss_fn(variational_dist, target=batch.y)
 
     def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
@@ -151,9 +150,6 @@ class DUE(pl.LightningModule):
             num_data=datamodule.num_train_samples,
             beta=self.beta,
         )
-
-        self.feature_scaler = datamodule.feature_transform
-        self.target_scaler = datamodule.target_transform
 
     def inference_step(
         self, batch: Tensor | NamedSample, batch_idx: int, dataloader_idx: int | None = None
