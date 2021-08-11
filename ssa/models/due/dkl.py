@@ -25,20 +25,20 @@ __all__ = ["DKLGP", "GP", "get_initial_inducing_points", "get_initial_lengthscal
 
 
 def get_initial_inducing_points(
-    f_X_sample: npt.NDArray[np.float32], num_inducing_points: int
+    f_x_sample: npt.NDArray[np.float32], num_inducing_points: int
 ) -> Tensor:
     kmeans = cluster.MiniBatchKMeans(
         n_clusters=num_inducing_points, batch_size=num_inducing_points * 10
     )
-    kmeans.fit(f_X_sample)
+    kmeans.fit(f_x_sample)
     return torch.from_numpy(kmeans.cluster_centers_)
 
 
-def get_initial_lengthscale(f_X_samples: Tensor) -> Tensor:
+def get_initial_lengthscale(f_x_samples: Tensor) -> Tensor:
     if torch.cuda.is_available():
-        f_X_samples = f_X_samples.cuda()
+        f_x_samples = f_x_samples.cuda()
 
-    initial_lengthscale = torch.pdist(f_X_samples).mean()
+    initial_lengthscale = torch.pdist(f_x_samples).mean()
 
     return initial_lengthscale.cpu()
 
@@ -122,7 +122,6 @@ class DKLGP(gpytorch.Module):
         super().__init__()
 
         self.feature_extractor = feature_extractor
-        initial_lengthscale
         self.gp = GP(
             num_outputs=num_outputs,
             kernel=kernel,

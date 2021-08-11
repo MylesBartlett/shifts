@@ -49,7 +49,7 @@ class RIPAgent:
         """
         # Specifies the RIP variant.
         assert per_plan_algorithm in ("WCM", "MA", "BCM", "LQ", "UQ")
-        assert per_scene_algorithm in ("WCM", "MA", "BCM", "LQ", "UQ")
+        assert per_scene_algorithm in {"WCM", "MA", "BCM", "LQ", "UQ"}
         self._per_plan_algorithm = per_plan_algorithm
         self._per_scene_algorithm = per_scene_algorithm
 
@@ -64,7 +64,7 @@ class RIPAgent:
         self._models = [model.to(self._device) for model in models]
 
         # Determines backbone model.
-        assert model_name in ("bc", "dim")
+        assert model_name in {"bc", "dim"}
         self._model_name = model_name
 
         # If enabled, don't use aggregation -- just cache all
@@ -110,9 +110,9 @@ class RIPAgent:
         # (MC sampling over the model posterior)
         scores = []
         for i in range(K):
-            model_i_scores = []
-            for j in range(G):
-                model_i_scores.append(self._models[i].score_plans(predictions[j, :, :, :]))
+            model_i_scores = [
+                self._models[i].score_plans(predictions[j, :, :, :]) for j in range(G)
+            ]
 
             scores.append(torch.stack(model_i_scores, dim=0))
 
@@ -236,10 +236,10 @@ def load_rip_checkpoints(model: RIPAgent, device: str, k: int, checkpoint_dir: s
         try:
             model._models[models_loaded].load_state_dict(torch.load(ckpt_path, map_location=device))
             models_loaded += 1
-            print(f'Loaded ensemble member {models_loaded} ' f'from path {ckpt_path}')
+            print(f'Loaded ensemble member {models_loaded} from path {ckpt_path}')
         except Exception as e:
             raise Exception(
-                f"Failed in loading checkpoint at path " f"{ckpt_path} with exception:\n{e}"
+                f"Failed in loading checkpoint at path {ckpt_path} with exception:\n{e}"
             )
 
     assert models_loaded == len(model._models), (

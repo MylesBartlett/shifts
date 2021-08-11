@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import WandbLogger
 import torch
 
 from ssa.hydra.pytorch_lightning.trainer.configs import TrainerConf
-from ssa.hydra.ssa.models.configs import DUEConf
+from ssa.hydra.ssa.models.configs import DUEConf, SimpleRegressionConf
 from ssa.hydra.ssa.weather.data.configs import WeatherDataModuleConf
 from ssa.submission import Prediction, produce_submission
 
@@ -72,7 +72,7 @@ class Experiment:
         )
         preds_with_unc_cat = torch.cat(preds_with_unc_ls, dim=0)
         preds, uncertainty = torch.chunk(preds_with_unc_cat, chunks=2, dim=-1)
-        preds = self.data.target_transform.inverse_transform(preds)
+        preds = self.data.target_transform.inverse_transform(preds.cpu())
         preds_dc = Prediction(pred=preds.cpu().numpy(), uncertainty=uncertainty.cpu().numpy())
 
         produce_submission(predictions=preds_dc, results_dir=Path(self.exp.results_dir))
@@ -89,6 +89,7 @@ with sr.new_group(group_name="schema/data", target_path="data") as group:
 # 'model' group
 with sr.new_group(group_name="schema/model", target_path="model") as group:
     group.add_option(name="due", config_class=DUEConf)
+    group.add_option(name="simple", config_class=SimpleRegressionConf)
 
 # 'trainer' group
 with sr.new_group(group_name="schema/trainer", target_path="trainer") as group:

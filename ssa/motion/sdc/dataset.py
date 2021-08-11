@@ -3,12 +3,18 @@ import json
 from pprint import pprint
 from typing import List, Optional
 
-from sdc.constants import *
-from sdc.filters import *
 import torch
-from ysdc_dataset_api.dataset import MotionPredictionDataset
-from ysdc_dataset_api.features import FeatureRenderer
-from ysdc_dataset_api.utils import get_file_paths
+
+from ssa.motion.sdc.constants import (
+    RENDERER_CONFIG,
+    SPLIT_TO_PB_DATASET_PATH,
+    SPLIT_TO_RENDERED_DATASET_PATH,
+    SPLIT_TO_SCENE_TAGS_PATH,
+)
+from ssa.motion.sdc.filters import DATASETS_TO_FILTERS
+from ssa.motion.ysdc_dataset_api.dataset import MotionPredictionDataset
+from ssa.motion.ysdc_dataset_api.features import FeatureRenderer
+from ssa.motion.ysdc_dataset_api.utils import get_file_paths
 
 
 def load_renderer():
@@ -28,9 +34,7 @@ def load_overfit_set_file_paths(dataset_path, scene_tags_fpath, filter, n_overfi
             if len(valid_indices) >= n_overfit_examples:
                 break
 
-    print(
-        f'Built overfit dataset: used ' f'{len(valid_indices)}/{len(file_paths)} ' f'total scenes.'
-    )
+    print(f'Built overfit dataset: used {len(valid_indices)}/{len(file_paths)} ' f'total scenes.')
     return [file_paths[i] for i in valid_indices]
 
 
@@ -47,9 +51,8 @@ def load_datasets(c, splits: Optional[List[str]] = None):
 
     datasets = defaultdict(dict)
     for dataset_split, split_dict in DATASETS_TO_FILTERS.items():
-        if splits is not None:
-            if dataset_split not in splits:
-                continue
+        if splits is not None and dataset_split not in splits:
+            continue
 
         print(f'\nLoading {dataset_split} dataset(s).')
         split_dataset_path = SPLIT_TO_PB_DATASET_PATH[dataset_split]

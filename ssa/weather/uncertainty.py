@@ -52,13 +52,13 @@ def epkl_reg(preds, epsilon=1e-10):
     preds: array [n_models, n_samples, 2] - mean and var along last axis.
     """
     means = preds[:, :, 0]
-    vars = preds[:, :, 1] + epsilon
-    logvars = np.log(vars)
+    _vars = preds[:, :, 1] + epsilon
+    logvars = np.log(_vars)
 
     avg_means = np.mean(means, axis=0)
-    avg_second_moments = np.mean(means * means + vars, axis=0)
+    avg_second_moments = np.mean(means * means + _vars, axis=0)
 
-    inv_vars = 1.0 / vars
+    inv_vars = 1.0 / _vars
     avg_inv_vars = np.mean(inv_vars, axis=0)
     mean_inv_var = inv_vars * means
     avg_mean_inv_var = np.mean(mean_inv_var, axis=0)

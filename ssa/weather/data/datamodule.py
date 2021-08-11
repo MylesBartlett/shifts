@@ -19,23 +19,23 @@ class TabularTransform:
         self.inplace = inplace
 
     @abstractmethod
-    def fit(self, input: Tensor) -> TabularTransform:
+    def fit(self, data: Tensor) -> TabularTransform:
         ...
 
-    def fit_transform(self, input: Tensor) -> Tensor:
-        self.fit(input)
-        return self.transform(input)
+    def fit_transform(self, data: Tensor) -> Tensor:
+        self.fit(data)
+        return self.transform(data)
 
     @abstractmethod
-    def inverse_transform(self, output: Tensor) -> Tensor:
+    def inverse_transform(self, data: Tensor) -> Tensor:
         ...
 
     @abstractmethod
-    def transform(self, input: Tensor) -> Tensor:
+    def transform(self, data: Tensor) -> Tensor:
         ...
 
-    def __call__(self, input: Tensor) -> Tensor:
-        return self.transform(input)
+    def __call__(self, data: Tensor) -> Tensor:
+        return self.transform(data)
 
 
 class ZScoreNormalization(TabularTransform):
@@ -44,27 +44,26 @@ class ZScoreNormalization(TabularTransform):
     std: Tensor
 
     @implements(TabularTransform)
-    def fit(self, input: Tensor) -> ZScoreNormalization:
-        self.std, self.mean = torch.std_mean(input, dim=0, keepdim=True, unbiased=True)
-        return self
+    def fit(self, data: Tensor) -> ZScoreNormalization:
+        self.std, self.mean = torch.std_mean(data, dim=0, keepdim=True, unbiased=True)
 
     @implements(TabularTransform)
-    def inverse_transform(self, output: Tensor) -> Tensor:
+    def inverse_transform(self, data: Tensor) -> Tensor:
         if self.inplace:
-            output *= self.std
-            output += self.mean
+            data *= self.std
+            data += self.mean
         else:
-            output = (output * self.std) + self.mean
-        return output
+            data = (data * self.std) + self.mean
+        return data
 
     @implements(TabularTransform)
-    def transform(self, input: Tensor) -> Tensor:
+    def transform(self, data: Tensor) -> Tensor:
         if self.inplace:
-            input -= self.mean
-            input /= self.std
+            data -= self.mean
+            data /= self.std
         else:
-            input = (input - self.mean) / self.std
-        return input
+            data = (data - self.mean) / self.std
+        return data
 
 
 class MinMaxNormalization(TabularTransform):
@@ -82,31 +81,34 @@ class MinMaxNormalization(TabularTransform):
         self.new_range = self.new_max - self.new_min
 
     @implements(TabularTransform)
-    def fit(self, input: Tensor) -> MinMaxNormalization:
-        self.orig_min = torch.min(input, dim=0, keepdim=True).values
-        self.orig_max = torch.max(input, dim=0, keepdim=True).values
+    def fit(self, data: Tensor) -> MinMaxNormalization:
+        self.orig_min = torch.min(data, dim=0, keepdim=True).values
+        self.orig_max = torch.max(data, dim=0, keepdim=True).values
         self.orig_range = self.orig_max - self.orig_min
-        return self
 
     @implements(TabularTransform)
-    def inverse_transform(self, output: Tensor) -> Tensor:
-        output_std = (output - self.new_min) / (self.new_range)
+    def inverse_transform(self, data: Tensor) -> Tensor:
         if self.inplace:
-            output *= self.orig_range
-            output += self.orig_min
+            data -= self.new_min
+            data /= self.new_range
+            data *= self.orig_range
+            data += self.orig_min
         else:
-            output = output_std * self.orig_range + self.orig_min
-        return output
+            output_std = (data - self.new_min) / (self.new_range)
+            data = output_std * self.orig_range + self.orig_min
+        return data
 
     @implements(TabularTransform)
-    def transform(self, input: Tensor) -> Tensor:
-        input_std = (input - self.orig_min) / (self.orig_range)
+    def transform(self, data: Tensor) -> Tensor:
         if self.inplace:
-            input *= self.new_range
-            input += self.new_min
+            data -= self.orig_min
+            data /= self.orig_range + torch.finfo(torch.float32).eps
+            data *= self.new_range
+            data += self.new_min
         else:
-            input = input_std * self.new_range + self.new_min
-        return input
+            input_std = (data - self.orig_min) / (self.orig_range + torch.finfo(torch.float32).eps)
+            data = input_std * self.new_range + self.new_min
+        return data
 
 
 class WeatherDataModule(PBDataModule):
@@ -153,8 +155,8 @@ class WeatherDataModule(PBDataModule):
         # -- let's simply set the validation data as the test data for now
         # test_data = WeatherDataset(root=self.root, split=DataSplit.eval)
         # Feature normalization
-        self.feature_transform.fit_transform(train_data.x)
-        self.feature_transform.transform(val_data.x)
+        self.feature_transform.fit_transform(val_data.x)
+        self.feature_transform.transform(train_data.x)
         # self.feature_transform.transform(test_data.x)
         # Target normalization
         self.target_transform.fit_transform(train_data.y)

@@ -10,22 +10,22 @@ neoconfigen = {git = "https://github.com/predictive-analytics-lab/neoconfigen.gi
 hydra-submitit-launcher = {version = "^1.1.1", allow-prereleases = true}
 numpy = "^1.21.1"
 pandas = "^1.3.1"
-palbolts = {git = "https://github.com/predictive-analytics-lab/palbolts.git", branch = "main" }
+palbolts = {git = "https://github.com/predictive-analytics-lab/palbolts.git", rev = "main"}
 palkit = "^0.3.8"
-pytorch-lightning = "^1.3.8"
+pytorch-lightning = "^1.4.1"
 sklearn = "^0.0"
-tqdm = "*"
-wandb = "^0.11.0"
+tqdm = "^4.62.0"
+wandb = "^0.12.0"
 gpytorch = "^1.5.0"
 
 [tool.poetry.dev-dependencies]
-black = "*"
-mypy = "*"
-pydocstyle = "*"
-pylint = "*"
-pytest = "*"
-pytest-cov = "*"
-pre-commit = "*"
+black = "^21.7b0"
+mypy = "^0.910"
+pydocstyle = "^6.1.1"
+pylint = "^2.9.6"
+pytest = "^6.2.4"
+pytest-cov = "^2.12.1"
+pre-commit = "^2.14.0"
 python-type-stubs = {git = "https://github.com/predictive-analytics-lab/python-type-stubs.git", branch = "main" }
 pyarrow = "^5.0.0"
 
@@ -63,7 +63,7 @@ exclude = '''
 '''
 
 [tool.isort]
-known_third_party = ["absl", "bolts", "configen", "cv2", "google", "gpytorch", "hydra", "kit", "matplotlib", "numba", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "requests", "sdc", "sklearn", "tensorflow", "torch", "tqdm", "transformers", "transforms3d", "wandb", "ysdc_dataset_api"]
+known_third_party = ["absl", "bolts", "cv2", "google", "gpytorch", "hydra", "kit", "matplotlib", "numba", "numpy", "omegaconf", "pandas", "pytest", "pytorch_lightning", "requests", "sdc", "sklearn", "tensorflow", "torch", "torchmetrics", "tqdm", "transformers", "transforms3d", "wandb", "ysdc_dataset_api"]
 known_future_library = []
 extra_standard_library = ["dataclasses", "__future__", "typing_extensions"]
 line_length = 88

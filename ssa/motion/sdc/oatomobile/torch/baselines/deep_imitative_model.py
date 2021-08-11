@@ -88,10 +88,8 @@ class ImitativeModel(nn.Module):
         # other DIM models in RIP.
         self._z = self._params(**context)
 
-        # Decode a local mode `y` from the posterior.
-        y = self._flow.forward(z=self._z)
-
-        return y
+        # Decode from the posterior.
+        return self._flow.forward(z=self._z)
 
     def score_plans(self, y: torch.Tensor) -> torch.Tensor:
         """Scores plans given a context.
@@ -106,8 +104,7 @@ class ImitativeModel(nn.Module):
         """
         # Calculates imitation prior for each prediction in the batch.
         _, log_prob, logabsdet = self._flow._inverse(y=y, z=self._z)
-        imitation_priors = log_prob - logabsdet
-        return imitation_priors
+        return log_prob - logabsdet
 
     def _params(self, **context: torch.Tensor) -> torch.Tensor:
         """Returns the contextual parameters of the conditional
@@ -165,9 +162,7 @@ def train_step_dim(
     fde = batch_mean_metric_torch(
         base_metric=final_displacement_error_torch, predictions=predictions, ground_truth=y
     )
-    loss_dict = {'nll': loss.detach(), 'ade': ade.detach(), 'fde': fde.detach()}
-
-    return loss_dict
+    return {'nll': loss.detach(), 'ade': ade.detach(), 'fde': fde.detach()}
 
 
 def evaluate_step_dim(
@@ -193,5 +188,4 @@ def evaluate_step_dim(
     fde = batch_mean_metric_torch(
         base_metric=final_displacement_error_torch, predictions=predictions, ground_truth=y
     )
-    loss_dict = {'nll': nll.detach(), 'ade': ade.detach(), 'fde': fde.detach()}
-    return loss_dict
+    return {'nll': nll.detach(), 'ade': ade.detach(), 'fde': fde.detach()}

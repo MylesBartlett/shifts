@@ -295,20 +295,15 @@ def compute_all_aggregator_metrics(
     if metric_name is None:
         base_metrics = VALID_BASE_METRICS
     else:
-        base_metrics = []
-        for metric in VALID_BASE_METRICS:
-            if metric.upper() in metric_name:
-                base_metrics.append(metric)
+        base_metrics = [metric for metric in VALID_BASE_METRICS if metric.upper() in metric_name]
+
         if not base_metrics:
             raise ValueError(f'Invalid metric name {metric_name} specified.')
 
     if metric_name is None:
         aggregators = VALID_AGGREGATORS
     else:
-        aggregators = []
-        for agg in VALID_AGGREGATORS:
-            if agg in metric_name:
-                aggregators.append(agg)
+        aggregators = [agg for agg in VALID_AGGREGATORS if agg in metric_name]
         if not aggregators:
             raise ValueError(f'Invalid metric name {metric_name} specified.')
 

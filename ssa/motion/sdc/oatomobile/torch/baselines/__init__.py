@@ -84,7 +84,7 @@ def init_rip(c):
         f'{k} ensemble members.'
     )
     full_model_name = (
-        f'rip-{model_name}-k_{k}-plan_{per_plan_algorithm}-scene' f'_{per_scene_algorithm}'
+        f'rip-{model_name}-k_{k}-plan_{per_plan_algorithm}-scene_{per_scene_algorithm}'
     ).lower()
 
     # Init models
@@ -102,13 +102,12 @@ def init_model(c):
     model_name = c.model_name
     per_plan_algorithm = c.rip_per_plan_algorithm
     per_scene_algorithm = c.rip_per_scene_algorithm
-    if per_plan_algorithm is None or per_scene_algorithm is None:
-        print(f'Training {BACKBONE_NAME_TO_FULL_NAME[model_name]}')
-        init_fn, train_step, test_step = BACKBONE_NAME_TO_CLASS_FNS[model_name]
-        model = init_fn(c)
-        return model, model_name, train_step, test_step
-    else:
+    if per_plan_algorithm is not None and per_scene_algorithm is not None:
         return init_rip(c)
+    print(f'Training {BACKBONE_NAME_TO_FULL_NAME[model_name]}')
+    init_fn, train_step, test_step = BACKBONE_NAME_TO_CLASS_FNS[model_name]
+    model = init_fn(c)
+    return model, model_name, train_step, test_step
 
 
 def get_rip_kwargs(c):

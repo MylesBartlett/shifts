@@ -29,3 +29,20 @@ class DUEConf:
     lr_restart_mult: int = 2
     lr_sched_interval: TrainingMode = TrainingMode.epoch
     lr_sched_freq: int = 1
+
+
+@dataclass
+class SimpleRegressionConf:
+    _target_: str = "ssa.models.SimpleRegression"
+    activation_fn: ActivationFn = ActivationFn.relu
+    depth: int = 8
+    dropout_rate: float = 0.95
+    lr: float = 0.0003
+    lr_initial_restart: int = 10
+    lr_restart_mult: int = 2
+    lr_sched_interval: TrainingMode = TrainingMode.epoch
+    lr_sched_freq: int = 1
+    n_power_iterations: int = 1
+    num_features: int = 128
+    snorm_coeff: float = 0.95
+    weight_decay: float = 0.0

@@ -81,7 +81,7 @@ class MotionPredictionDataset(torch.utils.data.IterableDataset):
         self._yield_metadata = yield_metadata
 
         if pre_filtered_scene_file_paths is not None:
-            print('Building MotionPredictionDataset with pre-filtered ' 'scene file paths.')
+            print('Building MotionPredictionDataset with pre-filtered scene file paths.')
             self._scene_file_paths = pre_filtered_scene_file_paths
         else:
             self._scene_file_paths = self._filter_paths(
@@ -198,7 +198,7 @@ class MotionPredictionDataset(torch.utils.data.IterableDataset):
                 if self._scene_tags_filter(tags):
                     valid_indices.append(i)
 
-        print(f'{len(valid_indices)}/{len(file_paths)} ' f'scenes fit the filter criteria.')
+        print(f'{len(valid_indices)}/{len(file_paths)} scenes fit the filter criteria.')
         return [file_paths[i] for i in valid_indices]
 
 

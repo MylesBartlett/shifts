@@ -26,7 +26,7 @@ def build_parser():
         '--dir_data',
         type=str,
         default='data',
-        help='Directory where SDC data is stored. We also use this to cache ' 'torch hub models.',
+        help='Directory where SDC data is stored. We also use this to cache torch hub models.',
     )
     parser.add_argument(
         '--dir_metrics',
@@ -146,7 +146,7 @@ def build_parser():
         '--exp_checkpoint_frequency',
         type=int,
         default=1,
-        help='Checkpoint every `exp_checkpoint_frequency` times the ' 'validation loss improves.',
+        help='Checkpoint every `exp_checkpoint_frequency` times the validation loss improves.',
     )
     parser.add_argument(
         '--exp_checkpoint_validation_loss',
@@ -165,7 +165,7 @@ def build_parser():
         '--model_name',
         type=str,
         default='bc',
-        help="The backbone model. See " "sdc/oatomobile/torch/baselines/__init__.py.",
+        help="The backbone model. See sdc/oatomobile/torch/baselines/__init__.py.",
     )
     parser.add_argument(
         '--model_prefix',
@@ -179,7 +179,7 @@ def build_parser():
         '--model_checkpoint_key',
         type=str,
         default=None,
-        help="Optionally specify the name of the subdirectory to " "which we checkpoint.",
+        help="Optionally specify the name of the subdirectory to which we checkpoint.",
     )
     parser.add_argument(
         '--model_dim_hidden',
@@ -217,7 +217,7 @@ def build_parser():
         '--bc_deterministic',
         type='bool',
         default=False,
-        help='Train BC on the ADE objective, instead of using a valid ' 'likelihood.',
+        help='Train BC on the ADE objective, instead of using a valid likelihood.',
     )
     parser.add_argument(
         '--bc_generation_mode',
@@ -263,7 +263,7 @@ def build_parser():
         '--rip_samples_per_model',
         type=int,
         default=10,
-        help="Number of stochastic trajectory generations per RIP " "ensemble member.",
+        help="Number of stochastic trajectory generations per RIP ensemble member.",
     )
     parser.add_argument(
         '--rip_num_preds',
@@ -300,7 +300,7 @@ def build_parser():
         '--fbeta_threshold',
         type=float,
         default=1.0,
-        help='The error threshold below which we consider the prediction ' 'acceptable.',
+        help='The error threshold below which we consider the prediction acceptable.',
     )
     parser.add_argument(
         '--fbeta_beta', type=float, default=1.0, help='The beta value for the F_beta metric.'

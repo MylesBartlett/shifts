@@ -37,4 +37,4 @@ class NoOpLogger(Logger):
     """
 
     def write(self, data: LoggingData):
-        pass
+        """Does nothing."""

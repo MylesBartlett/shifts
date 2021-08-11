@@ -187,9 +187,8 @@ def train(c):
 
                 steps += 1
 
-        if eval_loss_dict is not None:
-            for key in eval_loss_dict:
-                eval_loss_dict[key] /= steps
+        for key in eval_loss_dict:
+            eval_loss_dict[key] /= steps
         if is_rip and not c.rip_cache_all_preds:
             eval_loss_dict = sdc_loss.evaluate_dataset_losses(dataset_key)
         if collect_dataset_stats:
