@@ -1,114 +1,22 @@
 from __future__ import annotations
-from abc import abstractmethod
+from enum import Enum
 from typing import Optional
 
 from bolts.data import PBDataModule
 from bolts.data.structures import TrainValTestSplit
 from kit import implements, parsable
 from kit.torch import TrainingMode
-import torch
-from torch import Tensor
 
+from ssa import transforms as T
 from ssa.weather.data.dataset import DataSplit, ImputationMethod, WeatherDataset
 
 __all__ = ["WeatherDataModule"]
 
 
-class TabularTransform:
-    def __init__(self, inplace: bool = False) -> None:
-        self.inplace = inplace
-
-    @abstractmethod
-    def fit(self, data: Tensor) -> TabularTransform:
-        ...
-
-    def fit_transform(self, data: Tensor) -> Tensor:
-        self.fit(data)
-        return self.transform(data)
-
-    @abstractmethod
-    def inverse_transform(self, data: Tensor) -> Tensor:
-        ...
-
-    @abstractmethod
-    def transform(self, data: Tensor) -> Tensor:
-        ...
-
-    def __call__(self, data: Tensor) -> Tensor:
-        return self.transform(data)
-
-
-class ZScoreNormalization(TabularTransform):
-
-    mean: Tensor
-    std: Tensor
-
-    @implements(TabularTransform)
-    def fit(self, data: Tensor) -> ZScoreNormalization:
-        self.std, self.mean = torch.std_mean(data, dim=0, keepdim=True, unbiased=True)
-
-    @implements(TabularTransform)
-    def inverse_transform(self, data: Tensor) -> Tensor:
-        if self.inplace:
-            data *= self.std
-            data += self.mean
-        else:
-            data = (data * self.std) + self.mean
-        return data
-
-    @implements(TabularTransform)
-    def transform(self, data: Tensor) -> Tensor:
-        if self.inplace:
-            data -= self.mean
-            data /= self.std
-        else:
-            data = (data - self.mean) / self.std
-        return data
-
-
-class MinMaxNormalization(TabularTransform):
-
-    orig_max: Tensor
-    orig_min: Tensor
-    orig_range: Tensor
-
-    def __init__(self, new_min: float = 0.0, new_max: float = 1.0, inplace: bool = False) -> None:
-        super().__init__(inplace=inplace)
-        if new_min > new_max:
-            raise ValueError("'new_min' cannot be greater than 'new_max'.")
-        self.new_min = new_min
-        self.new_max = new_max
-        self.new_range = self.new_max - self.new_min
-
-    @implements(TabularTransform)
-    def fit(self, data: Tensor) -> MinMaxNormalization:
-        self.orig_min = torch.min(data, dim=0, keepdim=True).values
-        self.orig_max = torch.max(data, dim=0, keepdim=True).values
-        self.orig_range = self.orig_max - self.orig_min
-
-    @implements(TabularTransform)
-    def inverse_transform(self, data: Tensor) -> Tensor:
-        if self.inplace:
-            data -= self.new_min
-            data /= self.new_range
-            data *= self.orig_range
-            data += self.orig_min
-        else:
-            output_std = (data - self.new_min) / (self.new_range)
-            data = output_std * self.orig_range + self.orig_min
-        return data
-
-    @implements(TabularTransform)
-    def transform(self, data: Tensor) -> Tensor:
-        if self.inplace:
-            data -= self.orig_min
-            data /= self.orig_range + torch.finfo(torch.float32).eps
-            data *= self.new_range
-            data += self.new_min
-        else:
-            input_std = (data - self.orig_min) / (self.orig_range + torch.finfo(torch.float32).eps)
-            data = input_std * self.new_range + self.new_min
-        return data
+class NormalizationMethod(Enum):
+    minmax = T.MinMaxNormalization
+    quantile = T.QuantileNormalization
+    zscore = T.ZScoreNormalization
 
 
 class WeatherDataModule(PBDataModule):
@@ -125,6 +33,8 @@ class WeatherDataModule(PBDataModule):
         pin_memory: bool = True,
         training_mode: TrainingMode = TrainingMode.epoch,
         imputation_method: ImputationMethod = ImputationMethod.mean,
+        feature_normalizer: NormalizationMethod = NormalizationMethod.zscore,
+        target_normalizer: NormalizationMethod = NormalizationMethod.zscore,
     ) -> None:
         super().__init__(
             train_batch_size=train_batch_size,
@@ -136,8 +46,8 @@ class WeatherDataModule(PBDataModule):
             training_mode=training_mode,
         )
         self.root = root
-        self.feature_transform = MinMaxNormalization(inplace=True)
-        self.target_transform = MinMaxNormalization(inplace=True)
+        self.feature_transform = feature_normalizer.value(inplace=True)
+        self.target_transform = target_normalizer.value(inplace=True)
         self.imputation_method = imputation_method
 
     def prepare_data(self) -> None:
