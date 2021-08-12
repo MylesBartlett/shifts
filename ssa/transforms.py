@@ -88,7 +88,7 @@ class QuantileNormalization(TabularTransform):
 
     @staticmethod
     def _compute_quantile(q: float, sorted_values: Tensor) -> Tensor:
-        q_ind_frac, q_ind_int = math.modf(q * len(sorted_values))
+        q_ind_frac, q_ind_int = math.modf(q * (len(sorted_values) - 1))
         q_ind_int = int(q_ind_int)
         q_quantile = sorted_values[q_ind_int]
         if q_ind_frac > 0:
