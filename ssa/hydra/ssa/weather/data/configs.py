@@ -7,6 +7,7 @@
 from dataclasses import dataclass, field
 from kit.torch.data import TrainingMode
 from omegaconf import MISSING
+from ssa.weather.data.datamodule import NormalizationMethod
 from ssa.weather.data.dataset import ImputationMethod
 from typing import Optional
 
@@ -23,3 +24,5 @@ class WeatherDataModuleConf:
     pin_memory: bool = True
     training_mode: TrainingMode = TrainingMode.epoch
     imputation_method: ImputationMethod = ImputationMethod.mean
+    feature_normalizer: NormalizationMethod = NormalizationMethod.zscore
+    target_normalizer: NormalizationMethod = NormalizationMethod.zscore
