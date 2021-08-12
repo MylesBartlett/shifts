@@ -98,8 +98,8 @@ class BaseVariationalModel(ShiftsBaseModel):
         self.lr_sched_freq = lr_sched_freq
         self.train_mae = MeanAbsoluteError()
         self.val_mae = MeanAbsoluteError()
-        self.train_mse = MeanSquaredError()
-        self.val_mse = MeanSquaredError()
+        self.train_mse = MeanSquaredError(squared=False)
+        self.val_mse = MeanSquaredError(squared=False)
 
     @abstractmethod
     def _get_loss(self, variational_dist: td.Distribution, batch: BinarySample):
