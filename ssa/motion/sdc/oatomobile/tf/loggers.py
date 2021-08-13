@@ -20,10 +20,14 @@ from typing import List, Mapping, Text
 from matplotlib import collections as mc
 import matplotlib.pyplot as plt
 import numpy as np
-from sdc.dataset import load_renderer
-from sdc.oatomobile.tf import types
 import tensorflow as tf
 import torch
+
+from .types import Array
+
+__all__ = ["COLORS", "TensorBoardLogger"]
+
+from ssa.motion.sdc import load_renderer
 
 COLORS = [
     "#0071bc",
@@ -59,9 +63,9 @@ class TensorBoardLogger:
         self,
         dataset_name: str,
         loss_dict: Mapping[Text, torch.Tensor],
-        overhead_features: types.Array,
-        predictions: types.Array,
-        ground_truth: types.Array,
+        overhead_features: Array,
+        predictions: Array,
+        ground_truth: Array,
         global_step: int,
     ) -> None:
         """Logs the scalar loss and visualizes predictions for qualitative

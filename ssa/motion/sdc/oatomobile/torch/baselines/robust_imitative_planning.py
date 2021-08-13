@@ -18,11 +18,15 @@ import os
 from typing import Dict, Mapping, Optional, Sequence, Tuple, Union
 
 import numpy as np
-from sdc.cache_metadata import MetadataCache
-from sdc.metrics import SDCLoss
-from sdc.oatomobile.torch.baselines.behavioral_cloning import BehaviouralModel
-from sdc.oatomobile.torch.baselines.deep_imitative_model import ImitativeModel
 import torch
+
+from ssa.motion.sdc import MetadataCache, SDCLoss
+from ssa.motion.sdc.oatomobile.torch.baselines.behavioral_cloning import (
+    BehaviouralModel,
+)
+from ssa.motion.sdc.oatomobile.torch.baselines.deep_imitative_model import (
+    ImitativeModel,
+)
 
 
 class RIPAgent:

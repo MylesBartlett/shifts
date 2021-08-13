@@ -15,18 +15,17 @@
 
 from pprint import pprint
 
-from sdc.oatomobile.torch.baselines.batch_preprocessing import batch_transform
-from sdc.oatomobile.torch.baselines.behavioral_cloning import (
+from ssa.motion.sdc.oatomobile.torch.baselines.behavioral_cloning import (
     BehaviouralModel,
     evaluate_step_bc,
     train_step_bc,
 )
-from sdc.oatomobile.torch.baselines.deep_imitative_model import (
+from ssa.motion.sdc.oatomobile.torch.baselines.deep_imitative_model import (
     ImitativeModel,
     evaluate_step_dim,
     train_step_dim,
 )
-from sdc.oatomobile.torch.baselines.robust_imitative_planning import (
+from ssa.motion.sdc.oatomobile.torch.baselines.robust_imitative_planning import (
     RIPAgent,
     evaluate_step_rip,
 )

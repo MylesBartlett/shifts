@@ -18,6 +18,8 @@
 import torch
 import torch.nn as nn
 
+__all__ = ["MobileNetV2"]
+
 
 class MobileNetV2(nn.Module):
     """A `PyTorch Hub` MobileNetV2 model wrapper."""

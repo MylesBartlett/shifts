@@ -2,10 +2,10 @@ import os
 import pathlib
 
 import numpy as np
-from sdc.config import build_parser
-from sdc.trainer import train
 import torch
 import wandb
+
+from ssa.motion.sdc import build_parser, train
 
 
 def main():

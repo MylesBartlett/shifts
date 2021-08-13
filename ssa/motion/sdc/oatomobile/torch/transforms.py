@@ -14,9 +14,10 @@
 # ==============================================================================
 """Transformations and preprocessing used across the `PyTorch` models."""
 
-from sdc.oatomobile.torch import types
 import torch
 import torch.nn.functional as F
+
+from .types import Shape
 
 
 def downsample_target(
@@ -32,7 +33,7 @@ def downsample_target(
 
 def downsample_visual_features(
     visual_features: torch.Tensor,
-    output_shape: types.Shape,
+    output_shape: Shape,
 ) -> torch.Tensor:
     """Downsamples the visual features."""
     return F.interpolate(

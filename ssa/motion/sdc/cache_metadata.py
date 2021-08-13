@@ -5,13 +5,21 @@ from typing import Dict, List, Mapping, Sequence, Text, Union
 
 import numpy as np
 import pandas as pd
-from sdc.constants import (
+
+__all__ = [
+    "MetadataCache",
+    "load_dataset_key_to_arrs",
+    "construct_full_dev_sets",
+    "load_request_df",
+]
+
+from ssa.motion.sdc import (
     SCENE_TAG_TYPE_TO_OPTIONS,
     VALID_AGGREGATORS,
     VALID_BASE_METRICS,
     VALID_TRAJECTORY_TAGS,
 )
-from ysdc_dataset_api.evaluation.metrics import compute_all_aggregator_metrics
+from ssa.motion.ysdc_dataset_api.evaluation import compute_all_aggregator_metrics
 
 
 class MetadataCache:

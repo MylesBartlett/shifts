@@ -2,9 +2,9 @@ import json
 import os
 from typing import Callable, List, Optional, Union
 
-from sdc.constants import SCENE_TAG_TYPE_TO_OPTIONS, VALID_TRAJECTORY_TAGS
 import torch
 
+from ...sdc import SCENE_TAG_TYPE_TO_OPTIONS, VALID_TRAJECTORY_TAGS
 from ..features import FeatureProducerBase
 from ..proto import get_tags_from_request, proto_to_dict
 from ..utils import (

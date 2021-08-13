@@ -2,8 +2,9 @@ from collections import defaultdict
 from typing import Callable, Optional
 
 import numpy as np
-from sdc.constants import VALID_AGGREGATORS, VALID_BASE_METRICS
 import torch
+
+from ssa.motion.sdc import VALID_AGGREGATORS, VALID_BASE_METRICS
 
 
 def average_displacement_error(ground_truth, predicted):

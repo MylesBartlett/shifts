@@ -14,6 +14,6 @@
 # ==============================================================================
 """Useful PyTorch network definitions."""
 
-from sdc.oatomobile.torch.networks.mlp import MLP
-from sdc.oatomobile.torch.networks.perception import MobileNetV2
-from sdc.oatomobile.torch.networks.sequence import AutoregressiveFlow
+from .mlp import *
+from .perception import *
+from .sequence import *

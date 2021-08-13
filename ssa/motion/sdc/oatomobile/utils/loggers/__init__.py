@@ -14,6 +14,6 @@
 # ==============================================================================
 """OATomobile loggers."""
 
-from sdc.oatomobile.utils.loggers.base import Logger, LoggingData
-from sdc.oatomobile.utils.loggers.csv import CSVLogger
-from sdc.oatomobile.utils.loggers.terminal import TerminalLogger
+from .base import *
+from .csv import *
+from .terminal import *

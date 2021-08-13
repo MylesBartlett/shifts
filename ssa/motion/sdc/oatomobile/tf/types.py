@@ -17,11 +17,13 @@
 from typing import Any, Iterable, Mapping, Union
 
 import numpy as np
-from sdc.oatomobile import types
 import tensorflow as tf
 
-Shape = types.Shape
+from ..types import Scalar, Shape
+
+__all__ = ["Shape", "Tensor", "Array", "NestedArray", "NestedTensor"]
+Shape = Shape
 Tensor = tf.Tensor
-Array = Union[types.Scalar, np.ndarray, Tensor]
+Array = Union[Scalar, np.ndarray, Tensor]
 NestedArray = Union[Array, Iterable["NestedArray"], Mapping[Any, "NestedArray"]]
 NestedTensor = Union[Tensor, Iterable["NestedTensor"], Mapping[Any, "NestedTensor"]]

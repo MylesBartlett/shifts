@@ -17,9 +17,10 @@
 
 from typing import Mapping, Tuple
 
-from sdc.dataset import torch_cast_to_dtype
-from sdc.oatomobile.torch import transforms
 import torch
+
+from ssa.motion.sdc import torch_cast_to_dtype
+from ssa.motion.sdc.oatomobile.torch import transforms
 
 
 def batch_transform(
