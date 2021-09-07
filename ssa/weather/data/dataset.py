@@ -9,6 +9,7 @@ from urllib.request import urlopen
 from bolts.data.datasets.base import PBDataset
 from kit import parsable
 from kit.misc import str_to_enum
+import numpy as np
 import pandas as pd
 import requests
 import torch
@@ -124,16 +125,31 @@ class WeatherDataset(PBDataset):
                 csv_files = tuple(self._data_dir.glob("**/*.csv"))
                 for file in csv_files:
                     save_path = file.with_suffix(".pt")
-                    df = pd.read_csv(file)
+
+                    # first read only ten entries and infer types from that
+                    df_10 = pd.read_csv(file, nrows=10)
+                    dtypes = df_10.dtypes.to_dict()
+                    # convert all numeric columns to float32
+                    float32 = np.dtype("float32")
+                    dtypes = {
+                        c: float32 if dtype in (np.float64, np.int64, np.int32) else dtype
+                        for c, dtype in dtypes.items()
+                    }
+                    del df_10  # try to free memory; not sure this does anything
+
+                    # now load the whole file
+                    df = pd.read_csv(file, dtype=dtypes)
                     # label-encode any categorical columns
                     cat_cols = df.select_dtypes("object")  # type: ignore
                     for col in cat_cols:
-                        df[col] = df[col].factorize()[0]  # type: ignore
+                        df[col] = df[col].factorize()[0].astype(float32)  # type: ignore
                     if self._TARGET in df.columns:
                         target = df.pop(self._TARGET)  # type: ignore
                         # Move the target to the end of the dataframe
                         df = pd.concat([df, target], axis=1)
-                    data = torch.as_tensor(df.to_numpy(), dtype=torch.float32)
+                    data = torch.as_tensor(
+                        df.astype(float32, copy=False).to_numpy(), dtype=torch.float32
+                    )
                     torch.save(obj=data, f=save_path)
 
         elif not self._check_unzipped():
