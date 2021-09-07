@@ -25,9 +25,16 @@ from typing import Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from sdc.assessment import calc_uncertainty_regection_curve, f_beta_metrics
-from sdc.constants import VALID_AGGREGATORS, VALID_BASE_METRICS
-from ysdc_dataset_api.evaluation.metrics import (
+
+__all__ = ["SDCLoss"]
+
+from ssa.motion.sdc import (
+    VALID_AGGREGATORS,
+    VALID_BASE_METRICS,
+    calc_uncertainty_regection_curve,
+    f_beta_metrics,
+)
+from ssa.motion.ysdc_dataset_api.evaluation.metrics import (
     _softmax_normalize,
     aggregate_prediction_request_losses,
     average_displacement_error,

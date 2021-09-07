@@ -11,9 +11,16 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 import torch
 
-from ssa.hydra.pytorch_lightning.trainer.configs import TrainerConf
-from ssa.hydra.ssa.models.configs import DUEConf, SimpleRegressionConf
-from ssa.hydra.ssa.weather.data.configs import WeatherDataModuleConf
+from ssa.hydra.pytorch_lightning.trainer.configs import (
+    TrainerConf,  # type: ignore[import]
+)
+from ssa.hydra.ssa.models.configs import (  # type: ignore[import]
+    DUEConf,
+    SimpleRegressionConf,
+)
+from ssa.hydra.ssa.weather.data.configs import (
+    WeatherDataModuleConf,  # type: ignore[import]
+)
 from ssa.submission import Prediction, produce_submission
 
 

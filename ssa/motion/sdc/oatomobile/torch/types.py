@@ -17,11 +17,12 @@
 from typing import Any, Iterable, Mapping, Union
 
 import numpy as np
-from sdc.oatomobile import types
 import torch
 
-Shape = types.Shape
+from ..types import Scalar, Shape
+
+Shape = Shape
 Tensor = torch.Tensor
-Array = Union[types.Scalar, np.ndarray, Tensor]
+Array = Union[Scalar, np.ndarray, Tensor]
 NestedArray = Union[Array, Iterable["NestedArray"], Mapping[Any, "NestedArray"]]
 NestedTensor = Union[Tensor, Iterable["NestedTensor"], Mapping[Any, "NestedTensor"]]

@@ -3,26 +3,34 @@ from functools import partial
 import os
 from typing import Mapping, Text, Union
 
-from sdc.cache_metadata import MetadataCache
-from sdc.dataset import load_dataloaders, load_datasets
-from sdc.metrics import SDCLoss
-from sdc.oatomobile.tf.loggers import TensorBoardLogger
-from sdc.oatomobile.torch.baselines import (
-    BehaviouralModel,
-    ImitativeModel,
-    batch_transform,
-    init_model,
-)
-from sdc.oatomobile.torch.baselines.robust_imitative_planning import (
-    load_rip_checkpoints,
-)
-from sdc.oatomobile.torch.savers import Checkpointer
-from sdc.oatomobile.torch.utils import safe_torch_to_float, safe_torch_to_numpy
-from sdc.oatomobile.utils.loggers.wandb import WandbLogger
 import torch
 import torch.optim as optim
 import tqdm as tq
 from transformers import get_cosine_schedule_with_warmup
+
+__all__ = ["count_parameters", "train"]
+
+from ssa.motion.sdc import MetadataCache, SDCLoss, load_dataloaders, load_datasets
+from ssa.motion.sdc.oatomobile.tf.loggers import TensorBoardLogger
+from ssa.motion.sdc.oatomobile.torch.baselines import init_model
+from ssa.motion.sdc.oatomobile.torch.baselines.batch_preprocessing import (
+    batch_transform,
+)
+from ssa.motion.sdc.oatomobile.torch.baselines.behavioral_cloning import (
+    BehaviouralModel,
+)
+from ssa.motion.sdc.oatomobile.torch.baselines.deep_imitative_model import (
+    ImitativeModel,
+)
+from ssa.motion.sdc.oatomobile.torch.baselines.robust_imitative_planning import (
+    load_rip_checkpoints,
+)
+from ssa.motion.sdc.oatomobile.torch.savers import Checkpointer
+from ssa.motion.sdc.oatomobile.torch.utils import (
+    safe_torch_to_float,
+    safe_torch_to_numpy,
+)
+from ssa.motion.sdc.oatomobile.utils.loggers.wandb import WandbLogger
 
 
 def count_parameters(model):

@@ -30,6 +30,12 @@ Test Data ('test')
     (No precipitation, rain, snow and sleet)
 """
 
+__all__ = [
+    "filter_moscow_no_precipitation_data",
+    "filter_ood_validation_data",
+    "DATASETS_TO_FILTERS",
+]
+
 
 def filter_moscow_no_precipitation_data(scene_tags_dict):
     """

@@ -5,6 +5,20 @@ from sklearn.utils import assert_all_finite, check_consistent_length, column_or_
 from sklearn.utils.extmath import stable_cumsum
 from sklearn.utils.multiclass import type_of_target
 
+__all__ = [
+    "calc_uncertainty_regection_curve",
+    "calc_aucs",
+    "prr_classification",
+    "prr_regression",
+    "ood_detect",
+    "nll_regression",
+    "nll_class",
+    "ens_nll_regression",
+    "calc_rmse",
+    "ens_rmse",
+    "f_beta_metrics",
+]
+
 
 def calc_uncertainty_regection_curve(errors, uncertainty, group_by_uncertainty=True):
     n_objects = errors.shape[0]

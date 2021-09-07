@@ -19,8 +19,9 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
-from sdc.oatomobile.torch import types
 from torch.utils.tensorboard import SummaryWriter
+
+from .types import Array
 
 COLORS = [
     "#0071bc",
@@ -56,9 +57,9 @@ class TensorBoardLogger:
         split: str,
         loss: float,
         global_step: int,
-        overhead_features: Optional[types.Array] = None,
-        predictions: Optional[types.Array] = None,
-        ground_truth: Optional[types.Array] = None,
+        overhead_features: Optional[Array] = None,
+        predictions: Optional[Array] = None,
+        ground_truth: Optional[Array] = None,
     ) -> None:
         """Logs the scalar loss and visualizes predictions for qualitative
         inspection."""

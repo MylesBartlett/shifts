@@ -18,7 +18,10 @@ import csv
 import time
 
 from absl import logging
-from sdc.oatomobile.utils.loggers import base
+
+from ssa.motion.sdc.oatomobile.utils.loggers import base
+
+__all__ = ["CSVLogger"]
 
 
 class CSVLogger(base.Logger):

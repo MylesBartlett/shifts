@@ -20,13 +20,14 @@ based on Conditional Imitation Learning (CIL) [Codevilla et al., 2017].
 
 from typing import Mapping, Tuple
 
-from sdc.oatomobile.torch.networks.perception import MobileNetV2
 import torch
 import torch.distributions as D
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from ysdc_dataset_api.evaluation.metrics import (
+
+from ssa.motion.sdc.oatomobile.torch.networks import MobileNetV2
+from ssa.motion.ysdc_dataset_api.evaluation import (
     average_displacement_error_torch,
     batch_mean_metric_torch,
     final_displacement_error_torch,

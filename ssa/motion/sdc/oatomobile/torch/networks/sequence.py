@@ -16,12 +16,16 @@
 
 from typing import Tuple
 
-from sdc.oatomobile.torch import types
-from sdc.oatomobile.torch.networks.mlp import MLP
 import torch
 import torch.distributions as D
 import torch.nn as nn
 import torch.nn.functional as F
+
+from ssa.motion.sdc.oatomobile.torch.networks.mlp import MLP
+
+from ..types import Shape
+
+__all__ = ["AutoregressiveFlow"]
 
 
 class AutoregressiveFlow(nn.Module):
@@ -29,7 +33,7 @@ class AutoregressiveFlow(nn.Module):
 
     def __init__(
         self,
-        output_shape: types.Shape = (25, 2),
+        output_shape: Shape = (25, 2),
         hidden_size: int = 64,
         scale_eps: float = 1e-7,
     ):

@@ -16,12 +16,12 @@
 
 from typing import Mapping, Tuple
 
-from sdc.oatomobile.torch.networks.perception import MobileNetV2
-from sdc.oatomobile.torch.networks.sequence import AutoregressiveFlow
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from ysdc_dataset_api.evaluation.metrics import (
+
+from ssa.motion.sdc.oatomobile.torch.networks import AutoregressiveFlow, MobileNetV2
+from ssa.motion.ysdc_dataset_api.evaluation import (
     average_displacement_error_torch,
     batch_mean_metric_torch,
     final_displacement_error_torch,

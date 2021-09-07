@@ -18,7 +18,10 @@ import time
 from typing import Any, Callable
 
 import numpy as np
-from sdc.oatomobile.utils.loggers import base
+
+from ssa.motion.sdc.oatomobile.utils.loggers import base
+
+__all__ = ["serialize", "TerminalLogger"]
 
 
 def _format_key(key: str) -> str:

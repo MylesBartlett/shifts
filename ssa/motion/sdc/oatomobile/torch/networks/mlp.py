@@ -19,6 +19,8 @@ from typing import Callable, Optional, Sequence
 import torch
 import torch.nn as nn
 
+__all__ = ["MLP"]
+
 
 class MLP(nn.Module):
     """A simple multi-layer perceptron module."""
