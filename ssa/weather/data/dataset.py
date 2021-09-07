@@ -89,6 +89,137 @@ class WeatherDataset(PBDataset):
     ] = "https://storage.yandexcloud.net/yandex-research/shifts/weather/canonical-trn-dev-data.tar"
     _BASE_FOLDER: ClassVar[str] = "weather"
     _TARGET: ClassVar[str] = "fact_temperature"
+    _TRAIN_COLS: ClassVar[list[str]] = [
+        "fact_time",
+        "fact_latitude",
+        "fact_longitude",
+        "fact_temperature",
+        "fact_cwsm_class",
+        "climate",
+        "topography_bathymetry",
+        "sun_elevation",
+        "climate_temperature",
+        "climate_pressure",
+        "cmc_0_0_0_1000",
+        "cmc_0_0_0_2_grad",
+        "cmc_0_0_0_2_interpolated",
+        "cmc_0_0_0_2_next",
+        "cmc_0_0_0_2",
+        "cmc_0_0_0_500",
+        "cmc_0_0_0_700",
+        "cmc_0_0_0_850",
+        "cmc_0_0_0_925",
+        "cmc_0_0_6_2",
+        "cmc_0_0_7_1000",
+        "cmc_0_0_7_2",
+        "cmc_0_0_7_500",
+        "cmc_0_0_7_700",
+        "cmc_0_0_7_850",
+        "cmc_0_0_7_925",
+        "cmc_0_1_0_0",
+        "cmc_0_1_11_0",
+        "cmc_0_1_65_0",
+        "cmc_0_1_66_0",
+        "cmc_0_1_67_0",
+        "cmc_0_1_68_0",
+        "cmc_0_1_7_0",
+        "cmc_0_2_2_10",
+        "cmc_0_2_2_1000",
+        "cmc_0_2_2_500",
+        "cmc_0_2_2_700",
+        "cmc_0_2_2_850",
+        "cmc_0_2_2_925",
+        "cmc_0_2_3_10",
+        "cmc_0_2_3_1000",
+        "cmc_0_2_3_500",
+        "cmc_0_2_3_700",
+        "cmc_0_2_3_850",
+        "cmc_0_2_3_925",
+        "cmc_0_3_0_0",
+        "cmc_0_3_0_0_next",
+        "cmc_0_3_1_0",
+        "cmc_0_3_5_1000",
+        "cmc_0_3_5_500",
+        "cmc_0_3_5_700",
+        "cmc_0_3_5_850",
+        "cmc_0_3_5_925",
+        "cmc_0_6_1_0",
+        "cmc_available",
+        "cmc_horizon_h",
+        "cmc_precipitations",
+        "cmc_timedelta_s",
+        "gfs_2m_dewpoint",
+        "gfs_a_vorticity",
+        "gfs_available",
+        "gfs_cloudness",
+        "gfs_clouds_sea",
+        "gfs_horizon_h",
+        "gfs_humidity",
+        "gfs_precipitable_water",
+        "gfs_precipitations",
+        "gfs_pressure",
+        "gfs_r_velocity",
+        "gfs_soil_temperature",
+        "gfs_soil_temperature_available",
+        "gfs_temperature_10000",
+        "gfs_temperature_15000",
+        "gfs_temperature_20000",
+        "gfs_temperature_25000",
+        "gfs_temperature_30000",
+        "gfs_temperature_35000",
+        "gfs_temperature_40000",
+        "gfs_temperature_45000",
+        "gfs_temperature_5000",
+        "gfs_temperature_50000",
+        "gfs_temperature_55000",
+        "gfs_temperature_60000",
+        "gfs_temperature_65000",
+        "gfs_temperature_7000",
+        "gfs_temperature_70000",
+        "gfs_temperature_75000",
+        "gfs_temperature_80000",
+        "gfs_temperature_85000",
+        "gfs_temperature_90000",
+        "gfs_temperature_92500",
+        "gfs_temperature_95000",
+        "gfs_temperature_97500",
+        "gfs_temperature_sea",
+        "gfs_temperature_sea_grad",
+        "gfs_temperature_sea_interpolated",
+        "gfs_temperature_sea_next",
+        "gfs_timedelta_s",
+        "gfs_total_clouds_cover_high",
+        "gfs_total_clouds_cover_low",
+        "gfs_total_clouds_cover_middle",
+        "gfs_u_wind",
+        "gfs_v_wind",
+        "gfs_wind_speed",
+        "wrf_available",
+        "wrf_t2",
+        "wrf_t2_next",
+        "wrf_psfc",
+        "wrf_rh2",
+        "wrf_wind_u",
+        "wrf_wind_v",
+        "wrf_rain",
+        "wrf_snow",
+        "wrf_graupel",
+        "wrf_hail",
+        "wrf_t2_interpolated",
+        "wrf_t2_grad",
+        "cmc_0_1_65_0_grad",
+        "cmc_0_1_65_0_next",
+        "cmc_0_1_66_0_grad",
+        "cmc_0_1_66_0_next",
+        "cmc_0_1_67_0_grad",
+        "cmc_0_1_67_0_next",
+        "cmc_0_1_68_0_grad",
+        "cmc_0_1_68_0_next",
+        "gfs_2m_dewpoint_grad",
+        "gfs_2m_dewpoint_next",
+        "gfs_total_clouds_cover_low_grad",
+        "gfs_total_clouds_cover_low_next",
+    ]
 
     @parsable
     def __init__(
@@ -124,7 +255,17 @@ class WeatherDataset(PBDataset):
                 csv_files = tuple(self._data_dir.glob("**/*.csv"))
                 for file in csv_files:
                     save_path = file.with_suffix(".pt")
-                    df = pd.read_csv(file)
+                    if file.name == "train.csv":
+                        # special instructions for loading this file because it's so large
+                        df = pd.read_csv(
+                            file,
+                            dtype={
+                                c: "float32" if c != "climate" else "object"
+                                for c in self._TRAIN_COLS
+                            },
+                        )
+                    else:
+                        df = pd.read_csv(file)
                     # label-encode any categorical columns
                     cat_cols = df.select_dtypes("object")  # type: ignore
                     for col in cat_cols:
@@ -133,7 +274,9 @@ class WeatherDataset(PBDataset):
                         target = df.pop(self._TARGET)  # type: ignore
                         # Move the target to the end of the dataframe
                         df = pd.concat([df, target], axis=1)
-                    data = torch.as_tensor(df.to_numpy(), dtype=torch.float32)
+                    data = torch.as_tensor(
+                        df.astype("float32", copy=False).to_numpy(copy=False), dtype=torch.float32
+                    )
                     torch.save(obj=data, f=save_path)
 
         elif not self._check_unzipped():
