@@ -2,8 +2,8 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Mapping, NamedTuple
 
-from bolts.data import BinarySample, NamedSample, PBDataModule
-from bolts.structures import LRScheduler, Stage
+from conduit.data import BinarySample, NamedSample, CdtDataModule
+from conduit.types import LRScheduler, Stage
 from kit import implements
 from kit.torch import TrainingMode
 import pytorch_lightning as pl
@@ -26,7 +26,7 @@ class ValStepOut(NamedTuple):
 
 class ShiftsBaseModel(pl.LightningModule):
     @abstractmethod
-    def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
+    def build(self, datamodule: CdtDataModule, trainer: pl.Trainer) -> None:
         ...
 
     @implements(pl.LightningModule)

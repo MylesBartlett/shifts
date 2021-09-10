@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from bolts.data import BinarySample, PBDataModule
-from bolts.structures import Stage
+from conduit.data import BinarySample, CdtDataModule
+from conduit.types import Stage
 from kit import implements
 from kit.torch import TrainingMode
 import pytorch_lightning as pl
@@ -72,9 +72,9 @@ class SimpleRegression(BaseVariationalModel):
         )
 
     @implements(ShiftsBaseModel)
-    def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
+    def build(self, datamodule: CdtDataModule, trainer: pl.Trainer) -> None:
         self.feature_extractor = FCResNet(
-            in_channels=datamodule.dim_x[0],
+            in_channels=datamodule.train_data.dim_x[0],
             num_features=self.num_features,
             depth=self.depth,
             snorm_coeff=self.snorm_coeff,
