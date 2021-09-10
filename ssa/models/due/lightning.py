@@ -105,7 +105,7 @@ class DUE(BaseVariationalModel):
     @implements(ShiftsBaseModel)
     def build(self, datamodule: CdtDataModule, trainer: pl.Trainer) -> None:
         self.feature_extractor = FCResNet(
-            in_channels=datamodule.size()[0],
+            in_channels=datamodule.dims[0],
             num_features=self.num_features,
             depth=self.depth,
             snorm_coeff=self.snorm_coeff,
