@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import ClassVar, Union
 from urllib.request import urlopen
 
-from bolts.data.datasets.base import PBDataset
+from conduit.data.datasets.base import CdtDataset
 from kit import parsable
 from kit.misc import str_to_enum
 import numpy as np
@@ -83,7 +83,7 @@ class ImputationMethod(Enum):
     none = auto()  # drop NaN-containing rows
 
 
-class WeatherDataset(PBDataset):
+class WeatherDataset(CdtDataset):
 
     _URL: ClassVar[
         str

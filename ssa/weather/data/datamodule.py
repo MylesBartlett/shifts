@@ -2,8 +2,8 @@ from __future__ import annotations
 from enum import Enum
 from typing import Optional
 
-from bolts.data import PBDataModule
-from bolts.data.structures import TrainValTestSplit
+from conduit.data import CdtDataModule
+from conduit.data.structures import TrainValTestSplit
 from kit import implements, parsable
 from kit.torch import TrainingMode
 
@@ -19,7 +19,7 @@ class NormalizationMethod(Enum):
     zscore = T.ZScoreNormalization
 
 
-class WeatherDataModule(PBDataModule):
+class WeatherDataModule(CdtDataModule):
     @parsable
     def __init__(
         self,
@@ -53,7 +53,7 @@ class WeatherDataModule(PBDataModule):
     def prepare_data(self) -> None:
         WeatherDataset(root=self.root, split=DataSplit.train, download=True)
 
-    @implements(PBDataModule)
+    @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit:
         train_data = WeatherDataset(
             root=self.root, split=DataSplit.train, imputation_method=self.imputation_method

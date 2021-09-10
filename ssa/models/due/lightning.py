@@ -1,9 +1,9 @@
 """PyTorch-Lightning wrapper for DUE."""
 from __future__ import annotations
 
-from bolts.data.datamodules.base import PBDataModule
-from bolts.data.structures import BinarySample, NamedSample
-from bolts.structures import Stage
+from conduit.data.datamodules.base import CdtDataModule
+from conduit.data.structures import BinarySample, NamedSample
+from conduit.types import Stage
 from gpytorch.distributions import Distribution
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import VariationalELBO
@@ -103,9 +103,9 @@ class DUE(BaseVariationalModel):
         return self.dklgp(x)
 
     @implements(ShiftsBaseModel)
-    def build(self, datamodule: PBDataModule, trainer: pl.Trainer) -> None:
+    def build(self, datamodule: CdtDataModule, trainer: pl.Trainer) -> None:
         self.feature_extractor = FCResNet(
-            in_channels=datamodule.dim_x[0],
+            in_channels=datamodule.dims[0],
             num_features=self.num_features,
             depth=self.depth,
             snorm_coeff=self.snorm_coeff,
