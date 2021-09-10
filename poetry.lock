@@ -241,7 +241,7 @@ torchvision = "*"
 type = "git"
 url = "https://github.com/predictive-analytics-lab/conduit.git"
 reference = "main"
-resolved_reference = "530c926ef5a7585db1d3b004996ed51b91273efa"
+resolved_reference = "5377b8849a7ff579764655ccf2d37747265b0c80"
 
 [[package]]
 name = "configparser"
