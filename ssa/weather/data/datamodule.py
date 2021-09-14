@@ -1,5 +1,6 @@
 from __future__ import annotations
 from enum import Enum
+from pathlib import Path
 from typing import Optional
 
 from conduit.data import CdtDataModule
@@ -45,7 +46,7 @@ class WeatherDataModule(CdtDataModule):
             pin_memory=pin_memory,
             training_mode=training_mode,
         )
-        self.root = root
+        self.root = str(Path(root).expanduser())
         self.feature_transform = feature_normalizer.value(inplace=True)
         self.target_transform = target_normalizer.value(inplace=True)
         self.imputation_method = imputation_method
