@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Type
 
 import pytest
@@ -9,7 +8,7 @@ from ssa.weather.data import WeatherDataModule
 
 @pytest.mark.parametrize("dm", [WeatherDataModule])
 def test_dm(dm: Type[pl.LightningDataModule]):
-    datamodule = dm(root=Path('~/Data').expanduser())
+    datamodule = dm(root='~/Data')
     datamodule.prepare_data()
     datamodule.setup()
 

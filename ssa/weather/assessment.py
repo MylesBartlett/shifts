@@ -118,12 +118,26 @@ def calc_rmse(preds, target, raw=False):
     return np.sqrt(np.mean((preds - target) ** 2))
 
 
+def calc_mae(preds, target, raw=False):
+    if raw:
+        return abs(preds - target)
+    return np.mean(np.abs(preds - target))
+
+
 def ens_rmse(target, preds, epsilon=1e-8, raw=False):
     means = preds[:, :, 0]  # mean values predicted by all models
     avg_mean = np.mean(means, axis=0)  # average predicted mean value
     if raw:
         return calc_rmse(avg_mean, target, raw=True)
     return calc_rmse(avg_mean, target)
+
+
+def ens_mae(target, preds, epsilon=1e-8, raw=False):
+    means = preds[:, :, 0]  # mean values predicted by all models
+    avg_mean = np.mean(means, axis=0)  # average predicted mean value
+    if raw:
+        return calc_mae(avg_mean, target, raw=True)
+    return calc_mae(avg_mean, target)
 
 
 def _check_pos_label_consistency(pos_label, y_true):
