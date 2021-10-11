@@ -131,13 +131,14 @@ class WeatherDataset(CdtDataset):
 
         def _load_data_from_csv(_filepath: Path) -> DataFrame:
             # first eead only ten entries and infer types from that
-            df_10 = pls.read_csv(_filepath, stop_after_n_rows=100)
+            df_10 = pls.read_csv(_filepath, stop_after_n_rows=2, infer_schema_length=2)
             # convert all numeric columns to float32
             dtypes = {}
             for col, dtype in zip(df_10.columns, df_10.dtypes):
                 if dtype in (pls.datatypes.Float64, pls.datatypes.Int64, pls.datatypes.Int32):
                     dtype = pls.datatypes.Float32
-                print(col, dtype)
+                elif col == "climate":
+                    dtype = pls.datatypes.Categorical
 
                 dtypes[col] = dtype
             del df_10  # try to free memory; not sure this does anything
@@ -145,7 +146,7 @@ class WeatherDataset(CdtDataset):
             # now load the whole file
             df = pls.read_csv(_filepath, dtype=dtypes, low_memory=False)  # type: ignore
             # label-encode 'climate'
-            df["climate"] = df["climate"].cast(pls.datatypes.Categorical).cast(pls.datatypes.UInt8)
+            df["climate"] = df["climate"].cast(pls.datatypes.UInt8)
             return df
 
         if split is DataSplit.train:
@@ -158,8 +159,8 @@ class WeatherDataset(CdtDataset):
         if split is DataSplit.eval:
             y = None
         else:
-            y = torch.from_numpy(data[self._TARGET].to_numpy())
-            data.drop_in_place(self._TARGET)
+            y = torch.tensor(data[self._TARGET].to_numpy())
+            data.drop_in_place(self._TARGET)  # type: ignore
         x = torch.from_numpy(data[:, 5:].to_numpy())
 
         # NaN-handling
