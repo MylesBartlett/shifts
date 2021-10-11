@@ -74,7 +74,7 @@ class WeatherDataset(CdtDataset):
             )
 
         if isinstance(split, str):
-            str_to_enum(str_=split, enum=DataSplit)
+            split = str_to_enum(str_=split, enum=DataSplit)
 
         if split is DataSplit.train:
             data = self._load_data(filepath=self._data_dir / "train.csv")
