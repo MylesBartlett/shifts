@@ -1,76 +1,22 @@
 from __future__ import annotations
 from enum import Enum, auto
-import logging
-import os
 from pathlib import Path
 from typing import ClassVar, Union
-from urllib.request import urlopen
 
 from conduit.data.datasets.base import CdtDataset
+from conduit.data.datasets.utils import UrlFileInfo, download_from_url
 from kit import parsable
 from kit.misc import str_to_enum
-import numpy as np
-import polars as pls
+import polars as pl
 from polars import datatypes as pldt
 from polars.eager.frame import DataFrame
-import requests
 import torch
-from tqdm import tqdm
 
 __all__ = [
     "DataSplit",
     "ImputationMethod",
     "WeatherDataset",
 ]
-
-
-def download_from_url(
-    url: str,
-    *,
-    dst: str | Path,
-    logger: logging.Logger | None = None,
-) -> None:
-    """Download from a url."""
-    logger = logging.getLogger(__name__) if logger is None else logger
-
-    if isinstance(dst, str):
-        dst = Path(dst)
-
-    if not dst.exists():
-        logger.info(f"Downloading file {dst.name} from address '{url}'.")
-
-        file_size = int(urlopen(url).info().get("Content-Length", -1))
-        first_byte = os.path.getsize(dst) if dst.exists() else 0
-
-        if first_byte < file_size:
-            header = {"Range": "bytes=%s-%s" % (first_byte, file_size)}
-            pbar = tqdm(
-                total=file_size,
-                initial=first_byte,
-                unit="B",
-                unit_scale=True,
-                desc=url.split("/")[-1],
-            )
-            req = requests.get(url, headers=header, stream=True)
-            with (open(dst, "ab")) as f:
-                for chunk in req.iter_content(chunk_size=1024):
-                    if chunk:
-                        f.write(chunk)
-                        pbar.update(1024)
-            pbar.close()
-        else:
-            logger.info(f"File '{dst.name}' already downloaded.")
-    if dst.suffix == ".tar":
-        if dst.with_suffix("").exists():
-            logger.info(f"File '{dst.name}' already extracted.")
-        else:
-            import tarfile
-
-            logger.info(
-                f"Extracting '{dst.resolve()}' to {dst.parent.resolve()}; this could take a while."
-            )
-            with tarfile.TarFile(dst, "r") as fhandle:
-                fhandle.extractall(dst.parent)
 
 
 class DataSplit(Enum):
@@ -87,9 +33,10 @@ class ImputationMethod(Enum):
 
 class WeatherDataset(CdtDataset):
 
-    _URL: ClassVar[
-        str
-    ] = "https://storage.yandexcloud.net/yandex-research/shifts/weather/canonical-trn-dev-data.tar"
+    _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
+        name="canonical_trn_dev_data.tar",
+        url="https://storage.yandexcloud.net/yandex-research/shifts/weather/canonical-trn-dev-data.tar",
+    )
     _BASE_FOLDER: ClassVar[str] = "weather"
     _TARGET: ClassVar[str] = "fact_temperature"
 
@@ -104,7 +51,7 @@ class WeatherDataset(CdtDataset):
         if isinstance(root, str):
             root = Path(root)
         self._base_dir = root / self._BASE_FOLDER
-        self._data_dir = self._base_dir / "data"
+        self._data_dir = self._base_dir / "canonical_trn_dev_data" / "data"
         if isinstance(imputation_method, str):
             imputation_method = str_to_enum(str_=imputation_method, enum=ImputationMethod)
         self.imputation_method = imputation_method
@@ -116,8 +63,8 @@ class WeatherDataset(CdtDataset):
             else:
                 self._base_dir.mkdir(parents=True, exist_ok=True)
                 download_from_url(
-                    url=self._URL,
-                    dst=self._base_dir / "canonical_trn_dev_data.tar",
+                    file_info=self._FILE_INFO,
+                    root=self._base_dir,
                     logger=self.logger,
                 )
 
@@ -131,22 +78,22 @@ class WeatherDataset(CdtDataset):
 
         def _load_data_from_csv(_filepath: Path) -> DataFrame:
             # first eead only ten entries and infer types from that
-            df_10 = pls.read_csv(_filepath, stop_after_n_rows=2, infer_schema_length=2)
+            df_10 = pl.read_csv(_filepath, stop_after_n_rows=2, infer_schema_length=2)
             # convert all numeric columns to float32
             dtypes = {}
             for col, dtype in zip(df_10.columns, df_10.dtypes):
-                if dtype in (pls.datatypes.Float64, pls.datatypes.Int64, pls.datatypes.Int32):
-                    dtype = pls.datatypes.Float32
+                if dtype in (pldt.Float64, pldt.Int64, pldt.Int32):
+                    dtype = pldt.Float32
                 elif col == "climate":
-                    dtype = pls.datatypes.Categorical
+                    dtype = pldt.Categorical
 
                 dtypes[col] = dtype
             del df_10  # try to free memory; not sure this does anything
 
             # now load the whole file
-            df = pls.read_csv(_filepath, dtype=dtypes, low_memory=False)  # type: ignore
+            df = pl.read_csv(_filepath, dtype=dtypes, low_memory=False)  # type: ignore
             # label-encode 'climate'
-            df["climate"] = df["climate"].cast(pls.datatypes.UInt8)
+            df["climate"] = df["climate"].cast(pldt.UInt8)
             return df
 
         if split is DataSplit.train:
@@ -154,7 +101,7 @@ class WeatherDataset(CdtDataset):
         else:
             dev_in = _load_data_from_csv(_filepath=self._data_dir / "dev_in.csv")
             dev_out = _load_data_from_csv(_filepath=self._data_dir / "dev_out.csv")
-            data = pls.concat([dev_in, dev_out])
+            data = pl.concat([dev_in, dev_out])
 
         if split is DataSplit.eval:
             y = None
