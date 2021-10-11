@@ -76,31 +76,11 @@ class WeatherDataset(CdtDataset):
         if isinstance(split, str):
             str_to_enum(str_=split, enum=DataSplit)
 
-        def _load_data_from_csv(_filepath: Path) -> DataFrame:
-            # first eead only ten entries and infer types from that
-            df_10 = pl.read_csv(_filepath, stop_after_n_rows=2, infer_schema_length=2)
-            # convert all numeric columns to float32
-            dtypes = {}
-            for col, dtype in zip(df_10.columns, df_10.dtypes):
-                if dtype in (pldt.Float64, pldt.Int64, pldt.Int32):
-                    dtype = pldt.Float32
-                elif col == "climate":
-                    dtype = pldt.Categorical
-
-                dtypes[col] = dtype
-            del df_10  # try to free memory; not sure this does anything
-
-            # now load the whole file
-            df = pl.read_csv(_filepath, dtype=dtypes, low_memory=False)  # type: ignore
-            # label-encode 'climate'
-            df["climate"] = df["climate"].cast(pldt.UInt8)
-            return df
-
         if split is DataSplit.train:
-            data = _load_data_from_csv(_filepath=self._data_dir / "train.csv")
+            data = self._load_data(filepath=self._data_dir / "train.csv")
         else:
-            dev_in = _load_data_from_csv(_filepath=self._data_dir / "dev_in.csv")
-            dev_out = _load_data_from_csv(_filepath=self._data_dir / "dev_out.csv")
+            dev_in = self._load_data(filepath=self._data_dir / "dev_in.csv")
+            dev_out = self._load_data(filepath=self._data_dir / "dev_out.csv")
             data = pl.concat([dev_in, dev_out])
 
         if split is DataSplit.eval:
@@ -135,6 +115,26 @@ class WeatherDataset(CdtDataset):
             x[row_idxs, col_idxs] = fill_values[col_idxs]
 
         super().__init__(x=x, y=y)
+
+    def _load_data(self, filepath: Path) -> DataFrame:
+        # first eead only ten entries and infer types from that
+        df_10 = pl.read_csv(filepath, stop_after_n_rows=2, infer_schema_length=2)
+        # convert all numeric columns to float32
+        dtypes = {}
+        for col, dtype in zip(df_10.columns, df_10.dtypes):
+            if dtype in (pldt.Float64, pldt.Int64, pldt.Int32):
+                dtype = pldt.Float32
+            elif col == "climate":
+                dtype = pldt.Categorical
+
+            dtypes[col] = dtype
+        del df_10  # try to free memory; not sure this does anything
+
+        # now load the whole file
+        df = pl.read_csv(filepath, dtype=dtypes, low_memory=False)  # type: ignore
+        # label-encode 'climate'
+        df["climate"] = df["climate"].cast(pldt.UInt8)
+        return df
 
     def _check_unzipped(self) -> bool:
         return self._data_dir.exists()
