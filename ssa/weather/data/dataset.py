@@ -10,7 +10,9 @@ from conduit.data.datasets.base import CdtDataset
 from kit import parsable
 from kit.misc import str_to_enum
 import numpy as np
-import pandas as pd
+import polars as pls
+from polars import datatypes as pldt
+from polars.eager.frame import DataFrame
 import requests
 import torch
 from tqdm import tqdm
@@ -118,39 +120,6 @@ class WeatherDataset(CdtDataset):
                     dst=self._base_dir / "canonical_trn_dev_data.tar",
                     logger=self.logger,
                 )
-                # Convert the csv files to tensors and save as .pt objects
-                # - this is done as a pre-processing step to get around the
-                # the huger start-up time introduced by conversion of the
-                # very large arrays to tensors
-                csv_files = tuple(self._data_dir.glob("**/*.csv"))
-                for file in csv_files:
-                    save_path = file.with_suffix(".pt")
-
-                    # first read only ten entries and infer types from that
-                    df_10 = pd.read_csv(file, nrows=10)
-                    dtypes = df_10.dtypes.to_dict()
-                    # convert all numeric columns to float32
-                    float32 = np.dtype("float32")
-                    dtypes = {
-                        c: float32 if dtype in (np.float64, np.int64, np.int32) else dtype
-                        for c, dtype in dtypes.items()
-                    }
-                    del df_10  # try to free memory; not sure this does anything
-
-                    # now load the whole file
-                    df = pd.read_csv(file, dtype=dtypes)
-                    # label-encode any categorical columns
-                    cat_cols = df.select_dtypes("object")  # type: ignore
-                    for col in cat_cols:
-                        df[col] = df[col].factorize()[0].astype(float32)  # type: ignore
-                    if self._TARGET in df.columns:
-                        target = df.pop(self._TARGET)  # type: ignore
-                        # Move the target to the end of the dataframe
-                        df = pd.concat([df, target], axis=1)
-                    data = torch.as_tensor(
-                        df.astype(float32, copy=False).to_numpy(), dtype=torch.float32
-                    )
-                    torch.save(obj=data, f=save_path)
 
         elif not self._check_unzipped():
             raise RuntimeError(
@@ -160,19 +129,38 @@ class WeatherDataset(CdtDataset):
         if isinstance(split, str):
             str_to_enum(str_=split, enum=DataSplit)
 
+        def _load_data_from_csv(_filepath: Path) -> DataFrame:
+            # first eead only ten entries and infer types from that
+            df_10 = pls.read_csv(_filepath, stop_after_n_rows=100)
+            # convert all numeric columns to float32
+            dtypes = {}
+            for col, dtype in zip(df_10.columns, df_10.dtypes):
+                if dtype in (pls.datatypes.Float64, pls.datatypes.Int64, pls.datatypes.Int32):
+                    dtype = pls.datatypes.Float32
+                print(col, dtype)
+
+                dtypes[col] = dtype
+            del df_10  # try to free memory; not sure this does anything
+
+            # now load the whole file
+            df = pls.read_csv(_filepath, dtype=dtypes, low_memory=False)  # type: ignore
+            # label-encode 'climate'
+            df["climate"] = df["climate"].cast(pls.datatypes.Categorical).cast(pls.datatypes.UInt8)
+            return df
+
         if split is DataSplit.train:
-            data = torch.load(f=self._data_dir / "train.pt")
+            data = _load_data_from_csv(_filepath=self._data_dir / "train.csv")
         else:
-            dev_in = torch.load(f=self._data_dir / "dev_in.pt")
-            dev_out = torch.load(f=self._data_dir / "dev_out.pt")
-            data = torch.cat([dev_in, dev_out])
+            dev_in = _load_data_from_csv(_filepath=self._data_dir / "dev_in.csv")
+            dev_out = _load_data_from_csv(_filepath=self._data_dir / "dev_out.csv")
+            data = pls.concat([dev_in, dev_out])
 
         if split is DataSplit.eval:
-            x = data[:, 5:]
             y = None
         else:
-            x = data[:, 5:-1]
-            y = data[:, -1]
+            y = torch.from_numpy(data[self._TARGET].to_numpy())
+            data.drop_in_place(self._TARGET)
+        x = torch.from_numpy(data[:, 5:].to_numpy())
 
         # NaN-handling
         if y is not None:
