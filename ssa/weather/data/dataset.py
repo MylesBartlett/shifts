@@ -1,7 +1,7 @@
 from __future__ import annotations
 from enum import Enum, auto
 from pathlib import Path
-from typing import ClassVar, Union
+from typing import ClassVar, List, Union
 
 from conduit.data.datasets.tabular import CdtTabularDataset
 from conduit.data.datasets.utils import UrlFileInfo, download_from_url
@@ -33,10 +33,16 @@ class ImputationMethod(Enum):
 
 class WeatherDataset(CdtTabularDataset):
 
-    _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
-        name="canonical_trn_dev_data.tar",
-        url="https://storage.yandexcloud.net/yandex-research/shifts/weather/canonical-trn-dev-data.tar",
-    )
+    _FILE_INFO: ClassVar[List[UrlFileInfo]] = [
+        UrlFileInfo(
+            name="canonical_trn_dev_data.tar",
+            url="https://storage.yandexcloud.net/yandex-research/shifts/weather/canonical-trn-dev-data.tar",
+        ),
+        UrlFileInfo(
+            name="canonical_eval_data.tar",
+            url="https://storage.yandexcloud.net/yandex-research/shifts/weather/canonical-eval-data.tar",
+        ),
+    ]
     _BASE_FOLDER: ClassVar[str] = "weather"
     _TARGET: ClassVar[str] = "fact_temperature"
 
@@ -51,37 +57,41 @@ class WeatherDataset(CdtTabularDataset):
         if isinstance(root, str):
             root = Path(root)
         self._base_dir = root / self._BASE_FOLDER
-        self._data_dir = self._base_dir / "canonical_trn_dev_data" / "data"
+        self._trn_dev_data_dir = self._base_dir / "canonical_trn_dev_data" / "data"
+        self._eval_data_dir = self._base_dir / "canonical_eval_data" / "data"
         if isinstance(imputation_method, str):
             imputation_method = str_to_enum(str_=imputation_method, enum=ImputationMethod)
         self.imputation_method = imputation_method
         self.download = download
 
         if self.download:
-            if self._data_dir.exists():
+            if self._trn_dev_data_dir.exists():
                 self.log("Files already downloaded and unzipped.")
             else:
                 self._base_dir.mkdir(parents=True, exist_ok=True)
-                download_from_url(
-                    file_info=self._FILE_INFO,
-                    root=self._base_dir,
-                    logger=self.logger,
-                )
+                for file in self._FILE_INFO:
+                    download_from_url(
+                        file_info=file,
+                        root=self._base_dir,
+                        logger=self.logger,
+                    )
 
         elif not self._check_unzipped():
             raise RuntimeError(
-                f"Data not found at location {self._data_dir.resolve()}. " "Have you downloaded it?"
+                f"Data not found at location {self._base_dir.resolve()}. " "Have you downloaded it?"
             )
 
         if isinstance(split, str):
             split = str_to_enum(str_=split, enum=DataSplit)
 
         if split is DataSplit.train:
-            data = self._load_data(filepath=self._data_dir / "train.csv")
-        else:
-            dev_in = self._load_data(filepath=self._data_dir / "dev_in.csv")
-            dev_out = self._load_data(filepath=self._data_dir / "dev_out.csv")
+            data = self._load_data(filepath=self._trn_dev_data_dir / "train.csv")
+        elif split is DataSplit.dev:
+            dev_in = self._load_data(filepath=self._trn_dev_data_dir / "dev_in.csv")
+            dev_out = self._load_data(filepath=self._trn_dev_data_dir / "dev_out.csv")
             data = pl.concat([dev_in, dev_out])
+        elif split is DataSplit.eval:
+            data = self._load_data(filepath=self._eval_data_dir / "eval.csv")
 
         if split is DataSplit.eval:
             y = None
@@ -137,4 +147,4 @@ class WeatherDataset(CdtTabularDataset):
         return df
 
     def _check_unzipped(self) -> bool:
-        return self._data_dir.exists()
+        return self._trn_dev_data_dir.exists()

@@ -61,16 +61,19 @@ class WeatherDataModule(CdtDataModule):
         val_data = WeatherDataset(
             root=self.root, split=DataSplit.dev, imputation_method=self.imputation_method
         )
+        test_data = WeatherDataset(
+            root=self.root, split=DataSplit.eval, imputation_method=self.imputation_method
+        )
         # The (unlabeled) evaluation data is scheduled to be released in October
         # -- let's simply set the validation data as the test data for now
         # test_data = WeatherDataset(root=self.root, split=DataSplit.eval)
         # Feature normalization
         self.feature_transform.fit_transform(val_data.x)
         self.feature_transform.transform(train_data.x)
-        # self.feature_transform.transform(test_data.x)
+        self.feature_transform.transform(test_data.x)
         # Target normalization
-        self.target_transform.fit_transform(train_data.y)
-        self.target_transform.transform(val_data.y)
-        # self.feature_transform.transform(test_data.y)
+        self.target_transform.fit_transform(val_data.y)
+        self.target_transform.transform(train_data.y)
+        self.feature_transform.transform(test_data.y)
 
         return TrainValTestSplit(train=train_data, val=val_data, test=val_data)
