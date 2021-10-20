@@ -74,4 +74,4 @@ class WeatherDataModule(CdtDataModule):
         # self.feature_transform.transform(test_data.y)
         test_data = val_data
 
-        return TrainValTestSplit(train=train_data, val=val_data, test=test_data)
+        return TrainValTestSplit(train=train_data, val=test_data, test=test_data)
