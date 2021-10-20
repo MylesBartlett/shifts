@@ -2,11 +2,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Mapping, NamedTuple
 
-from conduit.data import BinarySample, NamedSample, CdtDataModule
+from conduit.data import BinarySample, CdtDataModule, NamedSample
 from conduit.types import LRScheduler, Stage
-from kit import implements
-from kit.torch import TrainingMode
 import pytorch_lightning as pl
+from ranzen import implements
+from ranzen.torch import TrainingMode
 import torch
 from torch import Tensor, nn, optim
 import torch.distributions as td
@@ -125,8 +125,8 @@ class BaseVariationalModel(ShiftsBaseModel):
     def training_step(self, batch, batch_idx) -> Tensor:
         variational_dist = self.forward(batch.x)
         loss = self._get_loss(variational_dist, batch)
-        self.train_mse(variational_dist.mean, batch.y)
-        self.train_mae(variational_dist.mean, batch.y)
+        self.train_mse(variational_dist.mean.detach(), batch.y)
+        self.train_mae(variational_dist.mean.detach(), batch.y)
         results_dict = {
             f"{Stage.fit.value}/loss": float(loss.item()),  # type: ignore
             f"{Stage.fit.value}/mse": self.train_mse,

@@ -5,7 +5,7 @@
 # flake8: noqa
 
 from dataclasses import dataclass, field
-from kit.torch.data import TrainingMode
+from ranzen.torch.data import TrainingMode
 from ssa.models.due.dkl import GPKernel
 from ssa.models.due.fc_resnet import ActivationFn
 

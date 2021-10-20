@@ -5,10 +5,10 @@ from typing import Any, Dict, Optional
 
 import hydra
 from hydra.utils import instantiate, to_absolute_path
-from kit.hydra import SchemaRegistration
 from omegaconf import MISSING, OmegaConf
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from ranzen.hydra import SchemaRegistration
 import torch
 
 from ssa.hydra.pytorch_lightning.trainer.configs import (

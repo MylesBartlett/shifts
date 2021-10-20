@@ -13,9 +13,9 @@ from gpytorch.variational import (
     IndependentMultitaskVariationalStrategy,
     VariationalStrategy,
 )
-from kit import str_to_enum
 import numpy as np
 import numpy.typing as npt
+from ranzen import str_to_enum
 from sklearn import cluster
 import torch
 from torch import Tensor

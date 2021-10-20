@@ -3,10 +3,8 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import ClassVar, Union
 
-from conduit.data.datasets.base import CdtDataset
+from conduit.data.datasets.tabular import CdtTabularDataset
 from conduit.data.datasets.utils import UrlFileInfo, download_from_url
-from kit import parsable
-from kit.misc import str_to_enum
 import polars as pl
 from polars import datatypes as pldt
 from polars.eager.frame import DataFrame
@@ -17,6 +15,8 @@ __all__ = [
     "ImputationMethod",
     "WeatherDataset",
 ]
+
+from ranzen import parsable, str_to_enum
 
 
 class DataSplit(Enum):
@@ -31,7 +31,7 @@ class ImputationMethod(Enum):
     none = auto()  # drop NaN-containing rows
 
 
-class WeatherDataset(CdtDataset):
+class WeatherDataset(CdtTabularDataset):
 
     _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
         name="canonical_trn_dev_data.tar",

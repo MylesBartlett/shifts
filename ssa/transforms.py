@@ -3,7 +3,7 @@ from abc import abstractmethod
 import math
 from typing import ClassVar
 
-from kit import implements
+from ranzen import implements
 import torch
 from torch import Tensor
 

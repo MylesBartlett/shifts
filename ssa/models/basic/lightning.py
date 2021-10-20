@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from conduit.data import BinarySample, CdtDataModule
 from conduit.types import Stage
-from kit import implements
-from kit.torch import TrainingMode
 import pytorch_lightning as pl
+from ranzen import implements
+from ranzen.torch import TrainingMode
 import torch
 from torch import Tensor, nn
 import torch.distributions as td

@@ -7,10 +7,10 @@ from conduit.types import Stage
 from gpytorch.distributions import Distribution
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import VariationalELBO
-from kit.decorators import implements, parsable
-from kit.torch import TrainingMode
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from ranzen import implements, parsable
+from ranzen.torch import TrainingMode
 import torch
 from torch import Tensor, nn
 from torch.utils.data.dataset import Subset

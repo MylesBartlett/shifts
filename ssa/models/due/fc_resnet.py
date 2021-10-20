@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional, Union
 
-from kit import str_to_enum
+from ranzen import str_to_enum
 import torch.nn as nn
 
 from .layers import spectral_norm_fc

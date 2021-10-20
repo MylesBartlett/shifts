@@ -4,8 +4,8 @@ from typing import Optional
 
 from conduit.data import CdtDataModule
 from conduit.data.structures import TrainValTestSplit
-from kit import implements, parsable
-from kit.torch import TrainingMode
+from ranzen import implements, parsable
+from ranzen.torch import TrainingMode
 
 from ssa import transforms as T
 from ssa.weather.data.dataset import DataSplit, ImputationMethod, WeatherDataset
