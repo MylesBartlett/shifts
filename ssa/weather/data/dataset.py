@@ -1,7 +1,7 @@
 from __future__ import annotations
 from enum import Enum, auto
 from pathlib import Path
-from typing import ClassVar, Union
+from typing import ClassVar, List, Union
 
 from conduit.data.datasets.tabular import CdtTabularDataset
 from conduit.data.datasets.utils import UrlFileInfo, download_from_url
@@ -17,6 +17,7 @@ __all__ = [
 ]
 
 from ranzen import parsable, str_to_enum
+from torch import Tensor
 
 
 class DataSplit(Enum):
@@ -33,10 +34,16 @@ class ImputationMethod(Enum):
 
 class WeatherDataset(CdtTabularDataset):
 
-    _FILE_INFO: ClassVar[UrlFileInfo] = UrlFileInfo(
-        name="canonical_trn_dev_data.tar",
-        url="https://storage.yandexcloud.net/yandex-research/shifts/weather/canonical-trn-dev-data.tar",
-    )
+    _FILE_INFO: ClassVar[List[UrlFileInfo]] = [
+        UrlFileInfo(
+            name="canonical_trn_dev_data.tar",
+            url="https://storage.yandexcloud.net/yandex-research/shifts/weather/canonical-trn-dev-data.tar",
+        ),
+        UrlFileInfo(
+            name="canonical_eval_data.tar",
+            url="https://storage.yandexcloud.net/yandex-research/shifts/weather/canonical-eval-data.tar",
+        ),
+    ]
     _BASE_FOLDER: ClassVar[str] = "weather"
     _TARGET: ClassVar[str] = "fact_temperature"
 
@@ -51,44 +58,80 @@ class WeatherDataset(CdtTabularDataset):
         if isinstance(root, str):
             root = Path(root)
         self._base_dir = root / self._BASE_FOLDER
-        self._data_dir = self._base_dir / "canonical_trn_dev_data" / "data"
+        self._trn_dev_data_dir = self._base_dir / "canonical_trn_dev_data" / "data"
+        self._eval_data_dir = self._base_dir / "canonical_eval_data" / "canonical-eval-data"
         if isinstance(imputation_method, str):
             imputation_method = str_to_enum(str_=imputation_method, enum=ImputationMethod)
         self.imputation_method = imputation_method
         self.download = download
 
         if self.download:
-            if self._data_dir.exists():
+            if self._trn_dev_data_dir.exists():
                 self.log("Files already downloaded and unzipped.")
             else:
                 self._base_dir.mkdir(parents=True, exist_ok=True)
-                download_from_url(
-                    file_info=self._FILE_INFO,
-                    root=self._base_dir,
-                    logger=self.logger,
-                )
+                for file in self._FILE_INFO:
+                    download_from_url(
+                        file_info=file,
+                        root=self._base_dir,
+                        logger=self.logger,
+                    )
 
         elif not self._check_unzipped():
             raise RuntimeError(
-                f"Data not found at location {self._data_dir.resolve()}. " "Have you downloaded it?"
+                f"Data not found at location {self._base_dir.resolve()}. " "Have you downloaded it?"
             )
 
         if isinstance(split, str):
             split = str_to_enum(str_=split, enum=DataSplit)
 
-        if split is DataSplit.train:
-            data = self._load_data(filepath=self._data_dir / "train.csv")
-        else:
-            dev_in = self._load_data(filepath=self._data_dir / "dev_in.csv")
-            dev_out = self._load_data(filepath=self._data_dir / "dev_out.csv")
-            data = pl.concat([dev_in, dev_out])
+        x, y = self._load_x_y_pair(split)
 
+        x, y = self._do_imputation(data=x, labels=y, imputation=imputation_method)
+
+        super().__init__(x=x, y=y)
+
+    def _load_split(self, split: DataSplit) -> DataFrame:
+
+        if split is DataSplit.train:
+            return self._load_data(filepath=self._trn_dev_data_dir / "train.csv")
+        elif split is DataSplit.dev:
+            dev_in = self._load_data(filepath=self._trn_dev_data_dir / "dev_in.csv")
+            dev_out = self._load_data(filepath=self._trn_dev_data_dir / "dev_out.csv")
+            return pl.concat([dev_in, dev_out])
+        else:
+            return self._load_data(filepath=self._eval_data_dir / "eval.csv")
+
+    def _do_imputation(
+        self, data: Tensor, *, labels: Tensor, imputation: ImputationMethod
+    ) -> tuple[Tensor, Tensor]:
+        nan_mask_x = data.isnan()
+        if imputation is ImputationMethod.none:
+            to_keep = nan_mask_x.count_nonzero(dim=1) == 0
+            data = data[to_keep]
+            if labels is not None:
+                labels = labels[to_keep]
+        else:
+            if imputation is ImputationMethod.mean:
+                num_non_nan = (~nan_mask_x).count_nonzero()
+                fill_values = torch.nansum(data, dim=0) / num_non_nan
+            elif imputation is ImputationMethod.median:
+                fill_values = torch.nanmedian(data, dim=0).values
+            else:
+                fill_values = torch.zeros(data.size(1))
+            row_idxs, col_idxs = nan_mask_x.nonzero(as_tuple=True)
+            data[row_idxs, col_idxs] = fill_values[col_idxs]
+        return data, labels
+
+    def _load_x_y_pair(self, split: DataSplit) -> tuple[Tensor, Tensor]:
+        data = self._load_split(split)
         if split is DataSplit.eval:
             y = None
         else:
             y = torch.tensor(data[self._TARGET].to_numpy())
             data.drop_in_place(self._TARGET)  # type: ignore
-        x = torch.from_numpy(data[:, 5:].to_numpy())
+            data = data[:, 5:]
+        x = torch.from_numpy(data.to_numpy())
 
         # NaN-handling
         if y is not None:
@@ -97,24 +140,7 @@ class WeatherDataset(CdtTabularDataset):
             x = x[to_keep]
             y = y[to_keep]
 
-        nan_mask_x = x.isnan()
-        if imputation_method is ImputationMethod.none:
-            to_keep = nan_mask_x.count_nonzero(dim=1) == 0
-            x = x[to_keep]
-            if y is not None:
-                y = y[to_keep]
-        else:
-            if imputation_method is ImputationMethod.mean:
-                num_non_nan = (~nan_mask_x).count_nonzero()
-                fill_values = torch.nansum(x, dim=0) / num_non_nan
-            elif imputation_method is ImputationMethod.median:
-                fill_values = torch.nanmedian(x, dim=0).values
-            else:
-                fill_values = torch.zeros(x.size(1))
-            row_idxs, col_idxs = nan_mask_x.nonzero(as_tuple=True)
-            x[row_idxs, col_idxs] = fill_values[col_idxs]
-
-        super().__init__(x=x, y=y)
+        return x, y
 
     def _load_data(self, filepath: Path) -> DataFrame:
         # first eead only ten entries and infer types from that
@@ -130,11 +156,10 @@ class WeatherDataset(CdtTabularDataset):
             dtypes[col] = dtype
         del df_10  # try to free memory; not sure this does anything
 
-        # now load the whole file
-        df = pl.read_csv(filepath, dtype=dtypes, low_memory=False)  # type: ignore
-        # label-encode 'climate'
-        df["climate"] = df["climate"].cast(pldt.UInt8)
-        return df
+        data = pl.read_csv(filepath, dtype=dtypes, low_memory=False)  # type: ignore
+        if "climate" in data.columns:
+            data["climate"] = data["climate"].cast(pldt.UInt8)
+        return data
 
     def _check_unzipped(self) -> bool:
-        return self._data_dir.exists()
+        return self._trn_dev_data_dir.exists()

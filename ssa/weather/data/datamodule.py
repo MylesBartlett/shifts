@@ -55,22 +55,22 @@ class WeatherDataModule(CdtDataModule):
 
     @implements(CdtDataModule)
     def _get_splits(self) -> TrainValTestSplit:
-        train_data = WeatherDataset(
-            root=self.root, split=DataSplit.train, imputation_method=self.imputation_method
-        )
-        val_data = WeatherDataset(
-            root=self.root, split=DataSplit.dev, imputation_method=self.imputation_method
-        )
-        # The (unlabeled) evaluation data is scheduled to be released in October
-        # -- let's simply set the validation data as the test data for now
-        # test_data = WeatherDataset(root=self.root, split=DataSplit.eval)
+        data = {
+            f"{split}": WeatherDataset(
+                root=self.root, split=split, imputation_method=self.imputation_method
+            )
+            for split in DataSplit
+        }
         # Feature normalization
-        self.feature_transform.fit_transform(val_data.x)
-        self.feature_transform.transform(train_data.x)
-        # self.feature_transform.transform(test_data.x)
+        self.feature_transform.fit_transform(data[f"{DataSplit.dev}"].x)
+        for split in (DataSplit.train, DataSplit.eval):
+            self.feature_transform.transform(data[f"{split}"].x)
         # Target normalization
-        self.target_transform.fit_transform(train_data.y)
-        self.target_transform.transform(val_data.y)
-        # self.feature_transform.transform(test_data.y)
+        self.target_transform.fit_transform(data[f"{DataSplit.dev}"].y)
+        self.target_transform.transform(data[f"{DataSplit.train}"].y)
 
-        return TrainValTestSplit(train=train_data, val=val_data, test=val_data)
+        return TrainValTestSplit(
+            train=data[f"{DataSplit.train}"],
+            val=data[f"{DataSplit.dev}"],
+            test=data[f"{DataSplit.eval}"],
+        )
