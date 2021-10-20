@@ -74,6 +74,6 @@ class WeatherDataModule(CdtDataModule):
         # Target normalization
         self.target_transform.fit_transform(val_data.y)
         self.target_transform.transform(train_data.y)
-        self.feature_transform.transform(test_data.y)
+        # self.feature_transform.transform(test_data.y)
 
         return TrainValTestSplit(train=train_data, val=val_data, test=val_data)

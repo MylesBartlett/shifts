@@ -17,6 +17,7 @@ __all__ = [
 ]
 
 from ranzen import parsable, str_to_enum
+from torch import Tensor
 
 
 class DataSplit(Enum):
@@ -58,7 +59,7 @@ class WeatherDataset(CdtTabularDataset):
             root = Path(root)
         self._base_dir = root / self._BASE_FOLDER
         self._trn_dev_data_dir = self._base_dir / "canonical_trn_dev_data" / "data"
-        self._eval_data_dir = self._base_dir / "canonical_eval_data" / "data"
+        self._eval_data_dir = self._base_dir / "canonical_eval_data" / "canonical-eval-data"
         if isinstance(imputation_method, str):
             imputation_method = str_to_enum(str_=imputation_method, enum=ImputationMethod)
         self.imputation_method = imputation_method
@@ -84,28 +85,7 @@ class WeatherDataset(CdtTabularDataset):
         if isinstance(split, str):
             split = str_to_enum(str_=split, enum=DataSplit)
 
-        if split is DataSplit.train:
-            data = self._load_data(filepath=self._trn_dev_data_dir / "train.csv")
-        elif split is DataSplit.dev:
-            dev_in = self._load_data(filepath=self._trn_dev_data_dir / "dev_in.csv")
-            dev_out = self._load_data(filepath=self._trn_dev_data_dir / "dev_out.csv")
-            data = pl.concat([dev_in, dev_out])
-        elif split is DataSplit.eval:
-            data = self._load_data(filepath=self._eval_data_dir / "eval.csv")
-
-        if split is DataSplit.eval:
-            y = None
-        else:
-            y = torch.tensor(data[self._TARGET].to_numpy())
-            data.drop_in_place(self._TARGET)  # type: ignore
-        x = torch.from_numpy(data[:, 5:].to_numpy())
-
-        # NaN-handling
-        if y is not None:
-            nan_mask_y = y.isnan()
-            to_keep = nan_mask_y.view(nan_mask_y.size(0), -1).count_nonzero(dim=1) == 0
-            x = x[to_keep]
-            y = y[to_keep]
+        x, y = self._load_split(split)
 
         nan_mask_x = x.isnan()
         if imputation_method is ImputationMethod.none:
@@ -126,6 +106,33 @@ class WeatherDataset(CdtTabularDataset):
 
         super().__init__(x=x, y=y)
 
+    def _load_split(self, split: DataSplit) -> tuple[Tensor, Tensor]:
+        if split is DataSplit.train:
+            data = self._load_data(filepath=self._trn_dev_data_dir / "train.csv")
+        elif split is DataSplit.dev:
+            dev_in = self._load_data(filepath=self._trn_dev_data_dir / "dev_in.csv")
+            dev_out = self._load_data(filepath=self._trn_dev_data_dir / "dev_out.csv")
+            data = pl.concat([dev_in, dev_out])
+        else:
+            data = self._load_data(filepath=self._eval_data_dir / "eval.csv")
+
+        if split is DataSplit.eval:
+            y = None
+        else:
+            y = torch.tensor(data[self._TARGET].to_numpy())
+            data.drop_in_place(self._TARGET)  # type: ignore
+            data = data[:, 5:]
+        x = torch.from_numpy(data.to_numpy())
+
+        # NaN-handling
+        if y is not None:
+            nan_mask_y = y.isnan()
+            to_keep = nan_mask_y.view(nan_mask_y.size(0), -1).count_nonzero(dim=1) == 0
+            x = x[to_keep]
+            y = y[to_keep]
+
+        return x, y
+
     def _load_data(self, filepath: Path) -> DataFrame:
         # first eead only ten entries and infer types from that
         df_10 = pl.read_csv(filepath, stop_after_n_rows=2, infer_schema_length=2)
@@ -140,11 +147,10 @@ class WeatherDataset(CdtTabularDataset):
             dtypes[col] = dtype
         del df_10  # try to free memory; not sure this does anything
 
-        # now load the whole file
-        df = pl.read_csv(filepath, dtype=dtypes, low_memory=False)  # type: ignore
-        # label-encode 'climate'
-        df["climate"] = df["climate"].cast(pldt.UInt8)
-        return df
+        data = pl.read_csv(filepath, dtype=dtypes, low_memory=False)  # type: ignore
+        if "climate" in data.columns:
+            data["climate"] = data["climate"].cast(pldt.UInt8)
+        return data
 
     def _check_unzipped(self) -> bool:
         return self._trn_dev_data_dir.exists()

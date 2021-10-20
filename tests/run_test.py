@@ -25,7 +25,13 @@ def test_with_initialize(datamodule: str) -> None:
         # config is relative to a module
         hydra_cfg = compose(
             config_name="main",
-            overrides=[f"data={datamodule}", f"data.root={data_dir}"] + SCHEMAS,
+            overrides=[
+                f"data={datamodule}",
+                f"data.root={data_dir}",
+                "data.train_batch_size=10",
+                "data.eval_batch_size=25",
+            ]
+            + SCHEMAS,
         )
         cfg: Experiment = instantiate(hydra_cfg, _recursive_=True, _convert_="partial")
         cfg.start(raw_config=OmegaConf.to_container(hydra_cfg, resolve=True, enum_to_str=True))
@@ -39,7 +45,16 @@ def test_regressor(datamodule: str, model: str) -> None:
     with initialize(config_path=CFG_PTH):
         hydra_cfg = compose(
             config_name="main",
-            overrides=(SCHEMAS + [f"data={datamodule}", f"data.root={data_dir}", f"model={model}"]),
+            overrides=(
+                SCHEMAS
+                + [
+                    f"data={datamodule}",
+                    f"data.root={data_dir}",
+                    f"model={model}",
+                    "data.train_batch_size=10",
+                    "data.eval_batch_size=25",
+                ]
+            ),
         )
         cfg: Experiment = instantiate(hydra_cfg, _recursive_=True, _convert_="partial")
         cfg.start(raw_config=OmegaConf.to_container(hydra_cfg, resolve=True, enum_to_str=True))
