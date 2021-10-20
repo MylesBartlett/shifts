@@ -73,7 +73,6 @@ class Experiment:
         # Fit the model
         print("Fitting model.")
         self.trainer.fit(model=self.model, datamodule=self.data)
-        # results_dict = self.trainer.test(model=self.model, datamodule=self.data)
         preds_with_unc_ls = self.trainer.predict(
             model=self.model, dataloaders=self.data.test_dataloader()
         )

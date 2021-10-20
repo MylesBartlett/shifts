@@ -135,11 +135,11 @@ class DUE(BaseVariationalModel):
         datamodule._train_data = train_data_full
 
         features = fe_lm.features.cpu()
-        print(f"Computing initial inducing points for GP.")
+        print("Computing initial inducing points for GP.")
         initial_inducing_points = get_initial_inducing_points(
             f_x_sample=features.numpy(), num_inducing_points=self.num_inducing_points
         )
-        print(f"Computing initial lengthscale for GP.")
+        print("Computing initial lengthscale for GP.")
         initial_lengthscale = get_initial_lengthscale(f_x_samples=features)
 
         self.dklgp = DKLGP(

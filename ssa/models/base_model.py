@@ -1,3 +1,4 @@
+"""Base Model."""
 from __future__ import annotations
 from abc import abstractmethod
 from typing import Mapping, NamedTuple
