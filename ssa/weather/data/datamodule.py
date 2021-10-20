@@ -4,8 +4,8 @@ from typing import Optional
 
 from conduit.data import CdtDataModule
 from conduit.data.structures import TrainValTestSplit
-from kit import implements, parsable
-from kit.torch import TrainingMode
+from ranzen import implements, parsable
+from ranzen.torch import TrainingMode
 
 from ssa import transforms as T
 from ssa.weather.data.dataset import DataSplit, ImputationMethod, WeatherDataset
@@ -72,6 +72,5 @@ class WeatherDataModule(CdtDataModule):
         self.target_transform.fit_transform(train_data.y)
         self.target_transform.transform(val_data.y)
         # self.feature_transform.transform(test_data.y)
-        test_data = val_data
 
-        return TrainValTestSplit(train=train_data, val=val_data, test=test_data)
+        return TrainValTestSplit(train=train_data, val=val_data, test=val_data)

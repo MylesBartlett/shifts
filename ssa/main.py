@@ -5,10 +5,10 @@ from typing import Any, Dict, Optional
 
 import hydra
 from hydra.utils import instantiate, to_absolute_path
-from kit.hydra import SchemaRegistration
 from omegaconf import MISSING, OmegaConf
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
+from ranzen.hydra import SchemaRegistration
 import torch
 
 from ssa.hydra.pytorch_lightning.trainer.configs import (
@@ -73,7 +73,6 @@ class Experiment:
         # Fit the model
         print("Fitting model.")
         self.trainer.fit(model=self.model, datamodule=self.data)
-        # results_dict = self.trainer.test(model=self.model, datamodule=self.data)
         preds_with_unc_ls = self.trainer.predict(
             model=self.model, dataloaders=self.data.test_dataloader()
         )

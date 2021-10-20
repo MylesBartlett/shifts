@@ -5,8 +5,8 @@
 # flake8: noqa
 
 from dataclasses import dataclass, field
-from kit.torch.data import TrainingMode
 from omegaconf import MISSING
+from ranzen.torch.data import TrainingMode
 from ssa.weather.data.datamodule import NormalizationMethod
 from ssa.weather.data.dataset import ImputationMethod
 from typing import Optional

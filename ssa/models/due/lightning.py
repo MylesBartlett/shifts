@@ -7,10 +7,10 @@ from conduit.types import Stage
 from gpytorch.distributions import Distribution
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import VariationalELBO
-from kit.decorators import implements, parsable
-from kit.torch import TrainingMode
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.types import EPOCH_OUTPUT, STEP_OUTPUT
+from ranzen import implements, parsable
+from ranzen.torch import TrainingMode
 import torch
 from torch import Tensor, nn
 from torch.utils.data.dataset import Subset
@@ -135,11 +135,11 @@ class DUE(BaseVariationalModel):
         datamodule._train_data = train_data_full
 
         features = fe_lm.features.cpu()
-        print(f"Computing initial inducing points for GP.")
+        print("Computing initial inducing points for GP.")
         initial_inducing_points = get_initial_inducing_points(
             f_x_sample=features.numpy(), num_inducing_points=self.num_inducing_points
         )
-        print(f"Computing initial lengthscale for GP.")
+        print("Computing initial lengthscale for GP.")
         initial_lengthscale = get_initial_lengthscale(f_x_samples=features)
 
         self.dklgp = DKLGP(
