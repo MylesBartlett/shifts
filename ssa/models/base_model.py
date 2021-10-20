@@ -129,9 +129,9 @@ class BaseVariationalModel(ShiftsBaseModel):
         self.train_mse(variational_dist.mean.detach(), batch.y)
         self.train_mae(variational_dist.mean.detach(), batch.y)
         results_dict = {
-            f"{Stage.fit.value}/loss": float(loss.item()),  # type: ignore
-            f"{Stage.fit.value}/mse": self.train_mse,
-            f"{Stage.fit.value}/mae": self.train_mae,
+            f"{Stage.fit}/loss": float(loss.item()),  # type: ignore
+            f"{Stage.fit}/mse": self.train_mse,
+            f"{Stage.fit}/mae": self.train_mae,
         }
         self.log_dict(results_dict)
         return loss
